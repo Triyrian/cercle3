@@ -1,10 +1,11 @@
-"""Turn-by-turn simulation engine for Fly-in.
+"""Moteur de simulation tour par tour de Fly-in.
 
-The :class:`Simulator` owns the *dynamic* state of a run (where each
-drone is, how full each zone is) while :class:`~network.Network` stays a
-pure static description. Each turn it decides which drones may advance,
-respects zone and link capacities, handles 2-turn restricted moves, and
-records the moves in the subject's output format.
+Le :class:`Simulator` porte l'état *dynamique* d'une exécution (où se
+trouve chaque drone, à quel point chaque zone est pleine) tandis que
+:class:`~network.Network` reste une description purement statique. À
+chaque tour, il décide quels drones avancent, respecte les capacités des
+zones et des liens, gère les déplacements restreints en 2 tours, et
+enregistre les mouvements au format de sortie du sujet.
 """
 
 from typing import NamedTuple
@@ -15,13 +16,13 @@ from path import find_paths
 
 
 class DroneState(NamedTuple):
-    """Renderable position of one drone at a given turn checkpoint.
+    """Position affichable d'un drone à un instant de la simulation.
 
     Attributes:
-        zone: The zone the drone occupies, or its departure zone while
-            ``target`` is set.
-        target: Destination zone while in transit toward a restricted
-            zone, or ``None`` when the drone is settled in ``zone``.
+        zone: La zone occupée par le drone, ou sa zone de départ tant
+            que ``target`` est renseigné.
+        target: Zone de destination pendant un vol vers une zone
+            restreinte, ``None`` quand le drone est posé dans ``zone``.
     """
 
     zone: str
@@ -29,22 +30,22 @@ class DroneState(NamedTuple):
 
 
 class Simulator:
-    """Drive drones from the start hub to the end hub, turn by turn.
+    """Conduit les drones du hub de départ au hub d'arrivée, tour par tour.
 
     Attributes:
-        network: The static map.
-        drones: All drones being routed.
-        occupancy: Number of drones currently in each zone (a slot in a
-            restricted zone is reserved as soon as a drone enters the
-            link toward it).
-        log: One list of move strings per completed turn.
-        snapshots: One drone-position snapshot per turn checkpoint,
-            starting with the initial state (before any move) at index
-            0, so ``len(snapshots) == len(log) + 1``.
+        network: La carte statique.
+        drones: Tous les drones à acheminer.
+        occupancy: Nombre de drones présents dans chaque zone (une place
+            en zone restreinte est réservée dès qu'un drone s'engage sur
+            le lien qui y mène).
+        log: Une liste de mouvements par tour écoulé.
+        snapshots: Un instantané des positions par tour, en commençant
+            par l'état initial (avant tout mouvement) à l'index 0, d'où
+            ``len(snapshots) == len(log) + 1``.
     """
 
     def __init__(self, network: Network) -> None:
-        """Create the simulator and its initial dynamic state."""
+        """Crée le simulateur et son état dynamique initial."""
         self.network = network
         self.drones: list[Drone] = [
             Drone(i) for i in range(1, network.nb_drones + 1)
@@ -60,17 +61,17 @@ class Simulator:
 
     @property
     def turn(self) -> int:
-        """Return the number of completed simulation turns."""
+        """Renvoie le nombre de tours de simulation écoulés."""
         return len(self.log)
 
     # ------------------------------------------------------------------
-    # Step 1 - routing: give every drone a path
+    # Etape 1 - routage : donner un chemin a chaque drone
     # ------------------------------------------------------------------
     def assign_paths(self) -> None:
-        """Find candidate paths and distribute the drones across them.
+        """Cherche les chemins candidats et y répartit les drones.
 
         Raises:
-            RuntimeError: If the end hub is unreachable.
+            RuntimeError: Si le hub d'arrivée est inatteignable.
         """
         assert self.network.start is not None
         assert self.network.end is not None
@@ -82,14 +83,16 @@ class Simulator:
         self._distribute(paths)
 
     def _distribute(self, paths: list[list[str]]) -> None:
-        """Spread drones across ``paths`` to minimise the last arrival.
+        """Répartit les drones sur ``paths`` pour avancer la dernière arrivée.
 
-        Greedy balancing: a path of cost ``L`` carrying ``k`` drones
-        finishes around turn ``L + k - 1``, so each drone is assigned to
-        the path whose ``cost + drones_already_on_it`` is the smallest.
+        Équilibrage glouton : un chemin de coût ``L`` portant ``k``
+        drones se termine vers le tour ``L + k - 1``, donc chaque drone
+        est affecté au chemin dont ``cout + drones_deja_dessus`` est le
+        plus petit.
 
         Args:
-            paths: Candidate paths, each from start hub to end hub.
+            paths: Les chemins candidats, du hub de départ à celui
+                d'arrivée.
         """
         costs = [self._path_cost(path) for path in paths]
         counts = [0] * len(paths)
@@ -101,30 +104,32 @@ class Simulator:
             counts[best] += 1
 
     def _path_cost(self, path: list[str]) -> int:
-        """Return the total turn cost of ``path`` (source excluded)."""
+        """Renvoie le coût total en tours de ``path`` (départ exclu)."""
         return sum(
             self.network.zones[name].move_cost for name in path[1:]
         )
 
     # ------------------------------------------------------------------
-    # Step 2 - the turn engine
+    # Etape 2 - le moteur de tours
     # ------------------------------------------------------------------
     def resolve_turn(self) -> list[str]:
-        """Compute and apply every drone move for the current turn.
+        """Calcule et applique tous les mouvements du tour courant.
 
-        Order of operations:
-            1. The worklist of settled drones is built first, so a drone
-               landing this turn cannot also move this turn.
-            2. Drones in transit toward a restricted zone land (their
-               arrival is mandatory; the slot was reserved at departure).
-            3. Settled drones are processed nearest-to-goal first, so a
-               zone freed by a leaving drone can be reused in the same
-               turn by the drone behind it. A move is granted only if
-               the link has capacity left this turn and the destination
-               zone has a free slot.
+        Ordre des opérations :
+            1. La liste de travail des drones posés est construite en
+               premier, ainsi un drone qui atterrit ce tour-ci ne peut
+               pas bouger en plus.
+            2. Les drones en vol vers une zone restreinte atterrissent
+               (leur arrivée est obligatoire ; la place a été réservée
+               au départ).
+            3. Les drones posés sont traités du plus proche du but au
+               plus loin, ainsi une zone libérée par un partant peut
+               être réutilisée dans le même tour par celui de derrière.
+               Un mouvement n'est accordé que si le lien a encore de la
+               capacité ce tour-ci et si la zone visée a une place.
 
         Returns:
-            The move strings performed this turn.
+            Les mouvements effectués pendant ce tour.
         """
         moves: list[str] = []
         link_used: dict[frozenset[str], int] = {}
@@ -145,13 +150,13 @@ class Simulator:
         return moves
 
     def _land(self, drone: Drone) -> str:
-        """Finish a 2-turn restricted move: settle the drone.
+        """Termine un déplacement restreint de 2 tours : pose le drone.
 
         Args:
-            drone: A drone currently in transit on a link.
+            drone: Un drone actuellement en vol sur un lien.
 
         Returns:
-            The move string ``D<id>-<zone>``.
+            Le mouvement au format ``D<id>-<zone>``.
         """
         target = drone.land()
         if target == self.network.end:
@@ -161,14 +166,14 @@ class Simulator:
     def _try_move(
         self, drone: Drone, link_used: dict[frozenset[str], int]
     ) -> str | None:
-        """Try to advance ``drone`` by one step; make it wait otherwise.
+        """Tente d'avancer ``drone`` d'une étape ; le fait attendre sinon.
 
         Args:
-            drone: A settled, undelivered drone.
-            link_used: Per-link move count for the current turn.
+            drone: Un drone posé et non encore livré.
+            link_used: Nombre de passages par lien pour le tour courant.
 
         Returns:
-            The move string, or ``None`` if the drone waits this turn.
+            Le mouvement effectué, ou ``None`` si le drone attend.
         """
         position = drone.position
         target = drone.next_zone()
@@ -195,14 +200,14 @@ class Simulator:
         return f"{drone.label}-{target}"
 
     # ------------------------------------------------------------------
-    # Step 3 - driver + output
+    # Etape 3 - pilotage + sortie
     # ------------------------------------------------------------------
     def is_finished(self) -> bool:
-        """Return ``True`` when every drone has reached the end hub."""
+        """Renvoie ``True`` quand tous les drones sont arrivés au but."""
         return all(drone.delivered for drone in self.drones)
 
     def _snapshot(self) -> dict[int, DroneState]:
-        """Capture each drone's current renderable position."""
+        """Capture la position affichable actuelle de chaque drone."""
         states: dict[int, DroneState] = {}
         for drone in self.drones:
             assert drone.position is not None
@@ -212,17 +217,17 @@ class Simulator:
         return states
 
     def run(self, max_turns: int = 10_000) -> list[list[str]]:
-        """Play the whole simulation and return the per-turn move log.
+        """Joue toute la simulation et renvoie le journal des mouvements.
 
         Args:
-            max_turns: Safety bound against infinite loops.
+            max_turns: Garde-fou contre les boucles infinies.
 
         Returns:
-            The full move log (one inner list per turn).
+            Le journal complet (une liste interne par tour).
 
         Raises:
-            RuntimeError: If no drone can move (deadlock) or the bound
-                is exceeded.
+            RuntimeError: Si aucun drone ne peut bouger (blocage) ou si
+                la borne est dépassée.
         """
         self.assign_paths()
         self.snapshots.append(self._snapshot())
@@ -237,5 +242,5 @@ class Simulator:
         return self.log
 
     def format_output(self) -> str:
-        """Render the move log in the subject's line-per-turn format."""
+        """Rend le journal au format une-ligne-par-tour du sujet."""
         return "\n".join(" ".join(moves) for moves in self.log)

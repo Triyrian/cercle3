@@ -1,12 +1,12 @@
-"""Parser for the Fly-in drone routing map format.
+"""Analyseur du format de carte de Fly-in.
 
-Reads a map file, validates it against the subject rules,
-and builds an in-memory :class:`~network.Network`.
+Lit un fichier de carte, le valide au regard des règles du sujet, et
+construit un :class:`~network.Network` en mémoire.
 
-Each line is routed to a handler via a dispatch table keyed on the
-line prefix (``nb_drones:``, ``start_hub:``, ``end_hub:``, ``hub:``,
-``connection:``). Any syntax or semantic error stops parsing immediately
-and reports the offending line and cause.
+Chaque ligne est routée vers son gestionnaire via une table d'aiguillage
+indexée par le préfixe de ligne (``nb_drones:``, ``start_hub:``,
+``end_hub:``, ``hub:``, ``connection:``). Toute erreur de syntaxe ou de
+cohérence arrête l'analyse et signale la ligne fautive et sa cause.
 """
 
 import sys
@@ -16,28 +16,28 @@ from network import Connection, Network, Zone, ZoneType
 
 
 class ParseError(Exception):
-    """Raised when a map file violates the expected format or rules.
+    """Levée quand une carte viole le format ou les règles attendues.
 
     Attributes:
-        line_no: 1-based line number where the error was detected
-            (``0`` means a global/end-of-file error).
+        line_no: Numéro de ligne (base 1) où l'erreur a été détectée
+            (``0`` désigne une erreur globale ou de fin de fichier).
     """
 
     def __init__(self, line_no: int, message: str) -> None:
-        """Build the error with a human-readable, located message."""
+        """Construit l'erreur avec un message lisible et localisé."""
         where = "end of file" if line_no == 0 else f"line {line_no}"
         super().__init__(f"[parse error] {where}: {message}")
         self.line_no = line_no
 
 
 class Parser:
-    """Parser that turns a map file into a :class:`~network.Network`."""
+    """Transforme un fichier de carte en :class:`~network.Network`."""
 
     ZONE_KEYS = {"zone", "color", "max_drones"}
     CONNECTION_KEYS = {"max_link_capacity"}
 
     def __init__(self) -> None:
-        """Initialise the parser with its line dispatch table."""
+        """Initialise l'analyseur et sa table d'aiguillage des lignes."""
         self.network = Network()
         self._nb_drones_set = False
         self._dispatch: dict[str, Callable[[str, int], None]] = {
@@ -49,17 +49,17 @@ class Parser:
         }
 
     def parse_file(self, path: str) -> Network:
-        """Parse a map file and return the validated network.
+        """Analyse un fichier de carte et renvoie le réseau validé.
 
         Args:
-            path: Path to the map file.
+            path: Chemin vers le fichier de carte.
 
         Returns:
-            The fully built and validated :class:`~network.Network`.
+            Le :class:`~network.Network` entièrement construit et validé.
 
         Raises:
-            ParseError: If the file violates the format or rules.
-            FileNotFoundError: If the file does not exist.
+            ParseError: Si le fichier viole le format ou les règles.
+            FileNotFoundError: Si le fichier n'existe pas.
         """
         try:
             with open(path, "r", encoding="utf-8") as handle:
@@ -71,7 +71,7 @@ class Parser:
         return self.network
 
     def _parse_line(self, raw: str, line_no: int) -> None:
-        """Strip, skip comments, then dispatch a single line."""
+        """Nettoie, ignore les commentaires, puis aiguille une ligne."""
         line = raw.strip()
         if not line or line.startswith("#"):
             return
@@ -84,7 +84,7 @@ class Parser:
         handler(rest.strip(), line_no)
 
     def _handle_nb_drones(self, rest: str, line_no: int) -> None:
-        """Handle the mandatory ``nb_drones:`` directive."""
+        """Traite la directive obligatoire ``nb_drones:``."""
         if self._nb_drones_set:
             raise ParseError(line_no, "nb_drones defined more than once")
         if self.network.zones or self.network.connections:
@@ -93,21 +93,21 @@ class Parser:
         self._nb_drones_set = True
 
     def _handle_start_hub(self, rest: str, line_no: int) -> None:
-        """Handle a ``start_hub:`` zone line."""
+        """Traite une ligne de zone ``start_hub:``."""
         self._add_zone(rest, line_no, is_start=True, is_end=False)
 
     def _handle_end_hub(self, rest: str, line_no: int) -> None:
-        """Handle an ``end_hub:`` zone line."""
+        """Traite une ligne de zone ``end_hub:``."""
         self._add_zone(rest, line_no, is_start=False, is_end=True)
 
     def _handle_hub(self, rest: str, line_no: int) -> None:
-        """Handle a regular ``hub:`` zone line."""
+        """Traite une ligne de zone ordinaire ``hub:``."""
         self._add_zone(rest, line_no, is_start=False, is_end=False)
 
     def _add_zone(
         self, rest: str, line_no: int, is_start: bool, is_end: bool
     ) -> None:
-        """Parse a zone body, validate it and add it to the network."""
+        """Analyse une zone, la valide et l'ajoute au réseau."""
         if not self._nb_drones_set:
             raise ParseError(line_no, "nb_drones must be defined first")
         body, meta = self._split_meta(rest, line_no)
@@ -127,7 +127,7 @@ class Parser:
             name, x, y,
             zone_type=self._zone_type(meta, line_no),
             color=meta.get("color"),
-            max_drones=self._zone_capacity(meta, line_no),
+            max_drones=self._capacity(meta, "max_drones", line_no),
         )
         self.network.add_zone(zone)
         if is_start:
@@ -136,19 +136,19 @@ class Parser:
             self._set_unique_end(name, line_no)
 
     def _set_unique_start(self, name: str, line_no: int) -> None:
-        """Record the start hub, rejecting a second definition."""
+        """Retient le hub de départ, en rejetant toute redéfinition."""
         if self.network.start is not None:
             raise ParseError(line_no, "more than one start_hub defined")
         self.network.start = name
 
     def _set_unique_end(self, name: str, line_no: int) -> None:
-        """Record the end hub, rejecting a second definition."""
+        """Retient le hub d'arrivée, en rejetant toute redéfinition."""
         if self.network.end is not None:
             raise ParseError(line_no, "more than one end_hub defined")
         self.network.end = name
 
     def _handle_connection(self, rest: str, line_no: int) -> None:
-        """Parse a ``connection:`` line and add the edge."""
+        """Analyse une ligne ``connection:`` et ajoute l'arête."""
         if not self._nb_drones_set:
             raise ParseError(line_no, "nb_drones must be defined first")
         body, meta = self._split_meta(rest, line_no)
@@ -166,20 +166,20 @@ class Parser:
                 line_no, f"duplicate connection {zone_a}-{zone_b}"
             )
         self._check_unknown_keys(meta, self.CONNECTION_KEYS, line_no)
-        cap = self._link_capacity(meta, line_no)
+        cap = self._capacity(meta, "max_link_capacity", line_no)
         self.network.add_connection(Connection(zone_a, zone_b, cap))
 
     def _split_meta(
         self, body: str, line_no: int
     ) -> tuple[str, dict[str, str]]:
-        """Split a body into its main text and ``[key=value ...]`` map."""
+        """Sépare un corps de ligne de son bloc ``[cle=valeur ...]``."""
         if "[" not in body and "]" not in body:
             return body.strip(), {}
         if body.count("[") != 1 or body.count("]") != 1:
             raise ParseError(line_no, "malformed metadata brackets")
         open_i = body.index("[")
         close_i = body.index("]")
-        if close_i < open_i or not body.rstrip().endswith("]"):
+        if not body.rstrip().endswith("]"):
             raise ParseError(line_no, "malformed metadata brackets")
         main = body[:open_i].strip()
         inner = body[open_i + 1:close_i].strip()
@@ -197,44 +197,33 @@ class Parser:
         return main, meta
 
     def _zone_type(self, meta: dict[str, str], line_no: int) -> ZoneType:
-        """Resolve the ``zone=`` metadata into a :class:`~network.ZoneType`."""
+        """Convertit la métadonnée ``zone=`` en :class:`~network.ZoneType`."""
         raw = meta.get("zone", "normal")
         try:
             return ZoneType(raw)
         except ValueError:
             raise ParseError(line_no, f"invalid zone type {raw!r}") from None
 
-    def _zone_capacity(self, meta: dict[str, str], line_no: int) -> int:
-        """Resolve the ``max_drones=`` metadata (default ``1``)."""
-        if "max_drones" not in meta:
+    def _capacity(self, meta: dict[str, str], key: str, line_no: int) -> int:
+        """Lit une métadonnée de capacité (défaut ``1``)."""
+        if key not in meta:
             return 1
-        return self._positive_int(meta["max_drones"], line_no, "max_drones")
-
-    def _link_capacity(self, meta: dict[str, str], line_no: int) -> int:
-        """Resolve the ``max_link_capacity=`` metadata (default ``1``)."""
-        if "max_link_capacity" not in meta:
-            return 1
-        return self._positive_int(
-            meta["max_link_capacity"], line_no, "max_link_capacity"
-        )
+        return self._positive_int(meta[key], line_no, key)
 
     def _check_unknown_keys(
         self, meta: dict[str, str], allowed: set[str], line_no: int
     ) -> None:
-        """Raise if metadata contains a key outside ``allowed``."""
-        for key in meta:
-            if key not in allowed:
-                raise ParseError(line_no, f"unknown metadata key {key!r}")
+        """Lève si une métadonnée sort de l'ensemble ``allowed``."""
+        if unknown := [key for key in meta if key not in allowed]:
+            raise ParseError(line_no, f"unknown metadata key {unknown[0]!r}")
 
     def _check_name(self, name: str, line_no: int) -> None:
-        """Validate a zone name (no dashes, no empty name)."""
-        if not name:
-            raise ParseError(line_no, "empty zone name")
+        """Valide un nom de zone (sans tiret)."""
         if "-" in name:
             raise ParseError(line_no, f"zone name {name!r} cannot contain '-'")
 
     def _integer(self, value: str, line_no: int, field: str) -> int:
-        """Parse an integer, raising a located error on failure."""
+        """Lit un entier, avec une erreur localisée en cas d'échec."""
         try:
             return int(value)
         except ValueError:
@@ -243,7 +232,7 @@ class Parser:
             ) from None
 
     def _positive_int(self, value: str, line_no: int, field: str) -> int:
-        """Parse a strictly positive integer."""
+        """Lit un entier strictement positif."""
         number = self._integer(value, line_no, field)
         if number <= 0:
             raise ParseError(
@@ -252,7 +241,7 @@ class Parser:
         return number
 
     def _final_validation(self) -> None:
-        """Run global checks once every line has been parsed."""
+        """Effectue les contrôles globaux une fois tout le fichier lu."""
         if not self._nb_drones_set:
             raise ParseError(0, "missing 'nb_drones' directive")
         if self.network.start is None:
@@ -265,13 +254,13 @@ class Parser:
 
 
 def main() -> int:
-    """Parse a map passed on the command line and print a summary."""
+    """Analyse la carte passée en argument et affiche un résumé."""
     if len(sys.argv) != 2:
         print("usage: python parsing.py <map_file>", file=sys.stderr)
         return 1
     try:
         network = Parser().parse_file(sys.argv[1])
-    except (ParseError, FileNotFoundError, OSError) as error:
+    except (ParseError, OSError) as error:
         print(error, file=sys.stderr)
         return 1
     print(f"drones      : {network.nb_drones}")
@@ -279,10 +268,9 @@ def main() -> int:
     print(f"zones       : {len(network.zones)}")
     print(f"connections : {len(network.connections)}")
     for zone in network.zones.values():
-        cap = str(zone.max_drones)
         print(
             f"-{zone.name:<18} {zone.zone_type.value:<10} "
-            f"cost={zone.move_cost} cap={cap}"
+            f"cost={zone.move_cost} cap={zone.max_drones}"
         )
     return 0
 

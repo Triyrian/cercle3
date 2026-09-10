@@ -1,7 +1,7 @@
-"""Data model for the Fly-in drone routing network.
+"""Modèle de données du réseau de zones de Fly-in.
 
-Defines the zone types, individual zones, connections between them,
-and the network that aggregates everything into a queryable graph.
+Définit les types de zone, les zones elles-mêmes, les connexions entre
+elles, et le réseau qui agrège le tout en un graphe interrogeable.
 """
 
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ from enum import Enum
 
 
 class ZoneType(Enum):
-    """Movement type of a zone, which drives its traversal cost."""
+    """Type de déplacement d'une zone, qui fixe son coût d'entrée."""
 
     NORMAL = "normal"
     BLOCKED = "blocked"
@@ -18,18 +18,18 @@ class ZoneType(Enum):
 
     @property
     def move_cost(self) -> int:
-        """Return the number of turns required to enter this zone."""
+        """Renvoie le nombre de tours nécessaires pour entrer ici."""
         return 2 if self is ZoneType.RESTRICTED else 1
 
     @property
     def is_passable(self) -> bool:
-        """Return ``True`` if a drone may enter this zone."""
+        """Renvoie ``True`` si un drone peut entrer dans cette zone."""
         return self is not ZoneType.BLOCKED
 
 
 @dataclass
 class Zone:
-    """A single zone (node) of the network."""
+    """Une zone (nœud) du réseau."""
 
     name: str
     x: int
@@ -40,13 +40,13 @@ class Zone:
 
     @property
     def move_cost(self) -> int:
-        """Return the turn cost to enter this zone."""
+        """Renvoie le coût en tours pour entrer dans cette zone."""
         return self.zone_type.move_cost
 
 
 @dataclass
 class Connection:
-    """A bidirectional link (edge) between two zones."""
+    """Un lien bidirectionnel (arête) entre deux zones."""
 
     zone_a: str
     zone_b: str
@@ -54,15 +54,15 @@ class Connection:
 
     @property
     def key(self) -> frozenset[str]:
-        """Return an order-independent identity for this connection."""
+        """Renvoie une identité du lien indépendante de l'ordre."""
         return frozenset((self.zone_a, self.zone_b))
 
 
 class Network:
-    """The whole map: drones, zones, connections and adjacency."""
+    """La carte complète : drones, zones, connexions et adjacence."""
 
     def __init__(self) -> None:
-        """Initialise an empty network."""
+        """Initialise un réseau vide."""
         self.nb_drones: int = 0
         self.zones: dict[str, Zone] = {}
         self.connections: list[Connection] = []
@@ -72,21 +72,21 @@ class Network:
         self._conn_keys: set[frozenset[str]] = set()
 
     def add_zone(self, zone: Zone) -> None:
-        """Register a new zone and create its (empty) adjacency entry."""
+        """Enregistre une zone et crée son entrée d'adjacence vide."""
         self.zones[zone.name] = zone
         self.adjacency[zone.name] = []
 
     def add_connection(self, conn: Connection) -> None:
-        """Register a connection and update both adjacency lists."""
+        """Enregistre un lien et met à jour les deux listes d'adjacence."""
         self.connections.append(conn)
         self._conn_keys.add(conn.key)
         self.adjacency[conn.zone_a].append(conn.zone_b)
         self.adjacency[conn.zone_b].append(conn.zone_a)
 
     def has_connection(self, zone_a: str, zone_b: str) -> bool:
-        """Return ``True`` if a connection already links the two zones."""
+        """Renvoie ``True`` si un lien relie déjà les deux zones."""
         return frozenset((zone_a, zone_b)) in self._conn_keys
 
     def neighbours(self, name: str) -> list[str]:
-        """Return the names of zones directly connected to ``name``."""
+        """Renvoie les noms des zones directement reliées à ``name``."""
         return self.adjacency.get(name, [])

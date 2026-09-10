@@ -1,8 +1,9 @@
-"""Fly-in entry point.
+"""Point d'entrée de Fly-in.
 
-Wires the pipeline together: parse a map file into a
-:class:`~network.Network`, run the :class:`~simulator.Simulator`, print the
-turn-by-turn output, and optionally launch the pygame visualisation.
+Assemble la chaîne complète : analyse un fichier de carte en
+:class:`~network.Network`, lance le :class:`~simulator.Simulator`,
+affiche la sortie tour par tour, et ouvre éventuellement la
+visualisation pygame.
 
 Usage:
     python fly.py <map_file> [--visual]
@@ -17,7 +18,7 @@ USAGE = "usage: python fly.py <map_file> [--visual]"
 
 
 def main() -> int:
-    """Parse arguments, run the simulation and print the result."""
+    """Analyse les arguments, lance la simulation et affiche le bilan."""
     args = sys.argv[1:]
     if not args or len(args) > 2:
         print(USAGE, file=sys.stderr)

@@ -1,10 +1,10 @@
-"""Pathfinding for the Fly-in network.
+"""Recherche de chemins dans le réseau Fly-in.
 
-Provides Dijkstra's shortest-path algorithm on the weighted zone graph
-(cost = ``move_cost`` of the destination zone, ``blocked`` zones skipped,
-``priority`` zones winning cost ties) and :func:`find_paths`, which
-extracts several vertex-disjoint paths for the drone scheduler by
-re-running Dijkstra with used zones banned.
+Fournit l'algorithme de Dijkstra sur le graphe pondéré des zones (coût =
+``move_cost`` de la zone d'arrivée, zones ``blocked`` ignorées, zones
+``priority`` gagnant les égalités) ainsi que :func:`find_paths`, qui en
+extrait plusieurs chemins disjoints pour l'ordonnanceur en relançant
+Dijkstra avec les zones déjà utilisées bannies.
 """
 
 import sys
@@ -19,23 +19,22 @@ def dijkstra(
     end: str,
     banned: frozenset[str] = frozenset(),
 ) -> list[str] | None:
-    """Return the cheapest path from ``start`` to ``end``.
+    """Renvoie le chemin le moins coûteux de ``start`` à ``end``.
 
-    Path weights are compared as ``(cost, malus)`` pairs: total turn
-    cost first, then the number of non-priority zones entered — so
-    ``priority`` zones win every cost tie, as the subject requires
-    ("should be prioritized in pathfinding"), without ever making a
-    path slower.
+    Les poids sont comparés par couples ``(cout, malus)`` : d'abord le
+    coût total en tours, puis le nombre de zones non-priority
+    traversées. Une zone ``priority`` gagne donc toutes les égalités de
+    coût, comme le demande le sujet, sans jamais rallonger un chemin.
 
     Args:
-        network: The map to search.
-        start: Source zone name.
-        end: Destination zone name.
-        banned: Zones that must not be used (treated as blocked).
+        network: La carte à parcourir.
+        start: Nom de la zone de départ.
+        end: Nom de la zone d'arrivée.
+        banned: Zones interdites (traitées comme bloquées).
 
     Returns:
-        The list of zone names from ``start`` to ``end`` (inclusive),
-        or ``None`` if no path exists.
+        La liste des noms de zones de ``start`` à ``end`` (inclus), ou
+        ``None`` si aucun chemin n'existe.
     """
     poids: dict[str, tuple[float, int]] = {
         z: (float("inf"), 0) for z in network.zones
@@ -77,20 +76,20 @@ def dijkstra(
 
 
 def find_paths(network: Network, start: str, end: str) -> list[list[str]]:
-    """Return vertex-disjoint paths from ``start`` to ``end``.
+    """Renvoie des chemins disjoints (hors extrémités) de ``start`` à ``end``.
 
-    Runs :func:`dijkstra` repeatedly; after each found path, its interior
-    zones are banned so the next run must take a different route. Stops
-    when no further path exists, or when a direct start-end link leaves
-    nothing to ban.
+    Relance :func:`dijkstra` en boucle ; après chaque chemin trouvé, ses
+    zones intérieures sont bannies pour forcer le suivant à passer
+    ailleurs. S'arrête quand plus aucun chemin n'existe, ou quand un lien
+    direct start-end ne laisse rien à bannir.
 
     Args:
-        network: The map to search.
-        start: Source zone name.
-        end: Destination zone name.
+        network: La carte à parcourir.
+        start: Nom de la zone de départ.
+        end: Nom de la zone d'arrivée.
 
     Returns:
-        A list of paths, cheapest first (possibly empty).
+        La liste des chemins, le moins coûteux d'abord (peut être vide).
     """
     paths: list[list[str]] = []
     banned: frozenset[str] = frozenset()
@@ -107,7 +106,7 @@ def find_paths(network: Network, start: str, end: str) -> list[list[str]]:
 
 
 def main() -> int:
-    """Parse a map file and print the shortest path start to end."""
+    """Analyse une carte et affiche les chemins trouvés du départ au but."""
     if len(sys.argv) != 2:
         print("usage: python path.py <map_file>", file=sys.stderr)
         return 1

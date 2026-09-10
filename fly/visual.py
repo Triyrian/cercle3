@@ -1,9 +1,10 @@
-"""Pygame visualisation for Fly-in.
+"""Visualisation pygame de Fly-in.
 
-Draws the zone graph and replays a finished simulation turn by turn:
-drones appear on their zones (or mid-link while in transit toward a
-restricted zone), a HUD shows the current turn and its moves, and
-``< Prev`` / ``Next >`` buttons (or the keyboard) step through the run.
+Dessine le graphe des zones et rejoue une simulation terminée tour par
+tour : les drones apparaissent sur leurs zones (ou au milieu d'un lien
+pendant un vol vers une zone restreinte), un bandeau affiche le tour
+courant et ses mouvements, et les boutons ``< Prev`` / ``Next >`` (ou le
+clavier) permettent d'avancer pas à pas.
 """
 
 import math
@@ -26,13 +27,13 @@ BUTTON_DISABLED_COLOR = (180, 180, 180)
 
 
 class Visualization:
-    """Interactive window showing the map and the simulation replay."""
+    """Fenêtre interactive montrant la carte et le rejeu de la simulation."""
 
     BASE_SCALE = 100
     ZONE_RADIUS = 10
     DRONE_RADIUS = 7
     BUTTON_SIZE = (90, 34)
-    SPREAD_FACTOR = 1.6  # ring radius between stacked drones, in radii
+    SPREAD_FACTOR = 1.6  # rayon d'etalement des drones empiles, en rayons
     ZOOM_MIN = 0.1
     ZOOM_MAX = 8.0
     ZOOM_STEP = 1.1
@@ -43,7 +44,7 @@ class Visualization:
         snapshots: list[dict[int, DroneState]],
         log: list[list[str]],
     ) -> None:
-        """Open the window and centre the camera on ``network``."""
+        """Ouvre la fenêtre et centre la caméra sur ``network``."""
         self.network = network
         self.snapshots = snapshots
         self.log = log
@@ -61,7 +62,7 @@ class Visualization:
         self.min_x = min(xs)
         self.min_y = min(ys)
 
-        # camera centred on the graph at startup
+        # camera centree sur le graphe au demarrage
         self.cam_x: float = (max(xs) - self.min_x) * self.BASE_SCALE / 2
         self.cam_y: float = (max(ys) - self.min_y) * self.BASE_SCALE / 2
         self.zoom: float = 1.0
@@ -74,10 +75,10 @@ class Visualization:
         self._next_rect = pygame.Rect(0, 0, *self.BUTTON_SIZE)
 
     # ------------------------------------------------------------------
-    # Coordinate helpers
+    # Aides au calcul de coordonnees
     # ------------------------------------------------------------------
     def _to_screen(self, lx: int, ly: int) -> tuple[int, int]:
-        """Convert map coordinates to pixels under the current camera."""
+        """Convertit des coordonnées carte en pixels selon la caméra."""
         wx = (lx - self.min_x) * self.BASE_SCALE
         wy = (ly - self.min_y) * self.BASE_SCALE
         cx = self.screen.get_width() / 2
@@ -86,14 +87,14 @@ class Visualization:
                 int((wy - self.cam_y) * self.zoom + cy))
 
     def _drone_radius(self) -> int:
-        """Return the on-screen drone radius under the current zoom."""
+        """Renvoie le rayon d'affichage d'un drone au zoom courant."""
         return max(4, int(self.DRONE_RADIUS * self.zoom))
 
     # ------------------------------------------------------------------
-    # Drawing
+    # Dessin
     # ------------------------------------------------------------------
     def _zone_color(self, zone: Zone) -> pygame.Color:
-        """Return the map-declared color of ``zone``, or its type color."""
+        """Renvoie la couleur déclarée de ``zone``, sinon celle du type."""
         if zone.color:
             try:
                 return pygame.Color(zone.color)
@@ -102,7 +103,7 @@ class Visualization:
         return pygame.Color(*FALLBACK_COLORS[zone.zone_type])
 
     def _draw_connections(self) -> None:
-        """Draw every connection as a line between its two zones."""
+        """Dessine chaque lien comme un trait entre ses deux zones."""
         for conn in self.network.connections:
             za = self.network.zones[conn.zone_a]
             zb = self.network.zones[conn.zone_b]
@@ -113,28 +114,28 @@ class Visualization:
             )
 
     def _draw_zones(self) -> None:
-        """Draw every zone as a colored circle with its name below."""
+        """Dessine chaque zone en cercle coloré, son nom en dessous."""
         r = max(6, int(self.ZONE_RADIUS * self.zoom))
         for zone in self.network.zones.values():
             pos = self._to_screen(zone.x, zone.y)
             pygame.draw.circle(self.screen, self._zone_color(zone), pos, r)
-            # thick border for start / end
+            # bord epais pour le depart / l'arrivee
             if zone.name == self.network.start:
                 pygame.draw.circle(self.screen, (0, 180, 0), pos, r, 3)
             elif zone.name == self.network.end:
                 pygame.draw.circle(self.screen, (200, 0, 0), pos, r, 3)
-            # name label below the circle
+            # nom de la zone sous le cercle
             label = self.font.render(zone.name, True, (0, 0, 0))
             self.screen.blit(
                 label, (pos[0] - label.get_width() // 2, pos[1] + r)
             )
 
     def _drone_screen_positions(self) -> dict[int, tuple[int, int]]:
-        """Return each drone's screen position for the current turn.
+        """Renvoie la position écran de chaque drone au tour courant.
 
-        Drones sharing the exact same spot (same zone, or mid-flight on
-        the same connection) are spread in a small circle so they stay
-        individually visible.
+        Les drones qui partagent exactement le même point (même zone, ou
+        en vol sur le même lien) sont étalés en petit cercle afin de
+        rester visibles individuellement.
         """
         snapshot = self.snapshots[self.turn_index]
         raw: dict[int, tuple[int, int]] = {}
@@ -167,7 +168,7 @@ class Visualization:
         return spread
 
     def _draw_drones(self) -> None:
-        """Draw every drone as a labelled dot at its current position."""
+        """Dessine chaque drone comme un point étiqueté à sa position."""
         r = self._drone_radius()
         for drone_id, pos in self._drone_screen_positions().items():
             pygame.draw.circle(self.screen, DRONE_COLOR, pos, r)
@@ -182,7 +183,7 @@ class Visualization:
             )
 
     def _draw_hud(self) -> None:
-        """Draw the turn counter, delivery count and current moves."""
+        """Affiche le tour courant, les livraisons et les mouvements."""
         total = len(self.snapshots) - 1
         snapshot = self.snapshots[self.turn_index]
         delivered = sum(
@@ -202,7 +203,7 @@ class Visualization:
     def _draw_button(
         self, rect: pygame.Rect, text: str, enabled: bool
     ) -> None:
-        """Draw one navigation button, greyed out when disabled."""
+        """Dessine un bouton de navigation, grisé s'il est désactivé."""
         color = BUTTON_COLOR if enabled else BUTTON_DISABLED_COLOR
         pygame.draw.rect(self.screen, color, rect, border_radius=6)
         pygame.draw.rect(self.screen, (30, 30, 30), rect, 2, border_radius=6)
@@ -214,7 +215,7 @@ class Visualization:
         )
 
     def _draw_buttons(self) -> None:
-        """Position and draw the ``< Prev`` / ``Next >`` buttons."""
+        """Place et dessine les boutons ``< Prev`` et ``Next >``."""
         w, h = self.screen.get_size()
         bw, bh = self.BUTTON_SIZE
         self._prev_rect.topleft = (w // 2 - bw - 10, h - bh - 15)
@@ -227,28 +228,28 @@ class Visualization:
     # Interaction
     # ------------------------------------------------------------------
     def _go_prev(self) -> None:
-        """Step the replay one turn back."""
+        """Recule le rejeu d'un tour."""
         self.turn_index = max(0, self.turn_index - 1)
 
     def _go_next(self) -> None:
-        """Step the replay one turn forward."""
+        """Avance le rejeu d'un tour."""
         self.turn_index = min(len(self.snapshots) - 1, self.turn_index + 1)
 
     def _handle_zoom(self, event: pygame.event.Event) -> None:
-        """Zoom in or out, keeping the point under the mouse fixed."""
+        """Zoome en gardant fixe le point situé sous la souris."""
         mx, my = pygame.mouse.get_pos()
         sw, sh = self.screen.get_width(), self.screen.get_height()
-        # world point under the mouse before zoom
+        # point du monde sous la souris avant le zoom
         wx = (mx - sw / 2) / self.zoom + self.cam_x
         wy = (my - sh / 2) / self.zoom + self.cam_y
         factor = self.ZOOM_STEP if event.y > 0 else 1 / self.ZOOM_STEP
         self.zoom = max(self.ZOOM_MIN, min(self.ZOOM_MAX, self.zoom * factor))
-        # keep the same world point under the mouse after zoom
+        # garder le meme point du monde sous la souris apres le zoom
         self.cam_x = wx - (mx - sw / 2) / self.zoom
         self.cam_y = wy - (my - sh / 2) / self.zoom
 
     def _handle_event(self, event: pygame.event.Event) -> bool:
-        """React to one pygame event; return ``False`` to close."""
+        """Réagit à un événement pygame ; ``False`` pour fermer."""
         if event.type == pygame.QUIT:
             return False
         if event.type == pygame.KEYDOWN:
@@ -283,7 +284,7 @@ class Visualization:
         return True
 
     def run(self) -> None:
-        """Show the window and loop until the user closes it."""
+        """Affiche la fenêtre et boucle jusqu'à sa fermeture."""
         clock = pygame.time.Clock()
         running = True
         while running:
