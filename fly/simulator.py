@@ -94,14 +94,12 @@ class Simulator:
             paths: Les chemins candidats, du hub de départ à celui
                 d'arrivée.
         """
-        costs = [self._path_cost(path) for path in paths]
-        counts = [0] * len(paths)
+        # eta[i] = tour d'arrivee du prochain drone place sur paths[i]
+        eta = [self._path_cost(path) for path in paths]
         for drone in self.drones:
-            best = min(
-                range(len(paths)), key=lambda i: costs[i] + counts[i]
-            )
+            best = eta.index(min(eta))
             drone.path = list(paths[best])
-            counts[best] += 1
+            eta[best] += 1
 
     def _path_cost(self, path: list[str]) -> int:
         """Renvoie le coût total en tours de ``path`` (départ exclu)."""
