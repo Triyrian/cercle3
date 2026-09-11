@@ -4,9 +4,6 @@ Assemble la chaîne complète : analyse un fichier de carte en
 :class:`~network.Network`, lance le :class:`~simulator.Simulator`,
 affiche la sortie tour par tour, et ouvre éventuellement la
 visualisation pygame.
-
-Usage:
-    python fly.py <map_file> [--visual]
 """
 
 import sys
