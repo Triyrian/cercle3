@@ -94,9 +94,9 @@ The pipeline is split into four independent, single-purpose modules, wired toget
 | hard/01_maze_nightmare | 8 | 13 | ≤ 30 | ✅ |
 | hard/02_capacity_hell | 12 | 16 | ≤ 35 | ✅ |
 | hard/03_ultimate_challenge | 15 | 26 | ≤ 45 | ✅ |
-| challenger/01_the_impossible_dream (bonus) | 25 | 67 | 45 (record) | not beaten yet |
+| challenger/01_the_impossible_dream (bonus) | 25 | 67 | 45 (record) | not beaten |
 
-Every mandatory benchmark is met or beaten; the optional challenger map is solved but does not yet beat the reference record.
+Every mandatory benchmark is met or beaten; the optional challenger map is solved but does not beat the reference record.
 
 ## Visual Representation
 
@@ -110,20 +110,19 @@ This turns the visualization from a static picture of the map into an actual deb
 ## Resources
 
 ### Documentation and references
-
+- Terminale Generale NSI
 - Dijkstra, E. W. (1959), *A Note on Two Problems in Connexion with Graphs* — the algorithm behind `path.py`.
 - *Introduction to Algorithms* (Cormen, Leiserson, Rivest, Stein) — reference for graph representations and shortest-path/turn-scheduling reasoning.
-- [Python `typing` module docs](https://docs.python.org/3/library/typing.html) and [PEP 484](https://peps.python.org/pep-0484/) / [PEP 526](https://peps.python.org/pep-0526/) — type hints used throughout.
-- [PEP 257](https://peps.python.org/pep-0257/) — docstring conventions.
 - [pygame documentation](https://www.pygame.org/docs/) — used for the graphical interface.
 - [flake8](https://flake8.pycqa.org/) and [mypy](https://mypy.readthedocs.io/) documentation — used for linting and static type checking.
+- Previous 42 project, friends and pairs
 
 ### AI usage
 
-AI was used during development as a development assistant, not as a code-generation shortcut — every suggestion below was reviewed, tested, and understood before being kept. Concretely, it was used for:
+AI was used during development as a development assistant, not as a code-generation shortcut — every suggestion below was reviewed, tested, and understood before being kept, it was used for:
 
 - **Codebase auditing**: reading the whole project file by file against the official subject PDF to produce an accurate, line-cited gap analysis (what's implemented, what's partial, what's missing) — used to prioritize remaining work rather than guess at it.
-- **Writing `visual.py` almost entirely**: the graphical replay module (map rendering, camera pan/zoom, per-turn drone rendering, HUD, `Prev`/`Next` navigation) is AI-generated code, along with the small per-turn snapshot hook it needs in `simulator.py` (`DroneState` / `snapshots`). It is a secondary tool whose only purpose is to visualize and sanity-check the main program; I reviewed it, ran it on every sample map, and checked headless screenshots (drone positions, mid-flight transit, delivered state), but I did not write it myself. The core of the project — `network.py`, `parsing.py`, `path.py`, `drone.py`, `simulator.py`, `fly.py` — is my own work, with AI used only for review, refactoring suggestions and bug-hunting as described in the other bullets.
+- **Writing `visual.py` almost entirely**: the graphical replay module (map rendering, camera pan/zoom, per-turn drone rendering, HUD, `Prev`/`Next` navigation) is AI-generated code. It is a secondary tool whose only purpose is to visualize and sanity-check the main program; I reviewed it, ran it on every sample map, and checked headless screenshots (drone positions, mid-flight transit, delivered state), but I did not write it myself. The core of the project — `network.py`, `parsing.py`, `path.py`, `drone.py`, `simulator.py`, `fly.py` — is my own work, with AI used only for review, refactoring suggestions and bug-hunting as described in the other bullets.
 - **Bug fixing**: catching and fixing a pre-existing `mypy` type-annotation error (`pygame.event` → `pygame.event.Event`).
 - **Linting/type-checking support**: running `flake8`/`mypy` after each change and fixing the reported issues.
 - **Drafting this README**, cross-checked against the subject's Chapter VIII requirements and the actual code/benchmarks.
