@@ -264,7 +264,6 @@ def main() -> int:
         print(error, file=sys.stderr)
         return 1
     print(f"drones      : {network.nb_drones}")
-    print(f"start / end : {network.start} -> {network.end}")
     print(f"zones       : {len(network.zones)}")
     print(f"connections : {len(network.connections)}")
     for zone in network.zones.values():
