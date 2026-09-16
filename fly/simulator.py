@@ -93,8 +93,9 @@ class Simulator:
         Args:
             paths: Les chemins candidats, du hub de départ à celui
                 d'arrivée.
+
+        eta[i] = tour d'arrivée du prochain drone placé sur paths[i]
         """
-        # eta[i] = tour d'arrivee du prochain drone place sur paths[i]
         eta = [self._path_cost(path) for path in paths]
         for drone in self.drones:
             best = eta.index(min(eta))
@@ -174,7 +175,7 @@ class Simulator:
             Le mouvement effectué, ou ``None`` si le drone attend.
         """
         position = drone.position
-        target = drone.next_zone()
+        target = drone.next_zone
         if position is None or target is None:
             return None
         key = frozenset((position, target))

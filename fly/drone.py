@@ -49,6 +49,7 @@ class Drone:
         """Renvoie le nombre d'étapes restantes avant le but."""
         return len(self.path) - self.step_index
 
+    @property
     def next_zone(self) -> str | None:
         """Renvoie la zone suivante du chemin, ou ``None`` à la fin."""
         if not self.path or self.step_index + 1 >= len(self.path):
@@ -66,7 +67,8 @@ class Drone:
         Returns:
             Le nom de la zone dans laquelle le drone atterrit.
         """
-        assert self.transit_target is not None
+        if self.transit_target is None:
+            raise AssertionError("Le drone n'est pas en transit !")
         target = self.transit_target
         self.advance()
         self.transit_target = None
