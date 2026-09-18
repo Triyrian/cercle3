@@ -71,9 +71,9 @@ class Parser:
         return self.network
 
     def _parse_line(self, raw: str, line_no: int) -> None:
-        """Nettoie, ignore les commentaires, puis aiguille une ligne."""
-        line = raw.strip()
-        if not line or line.startswith("#"):
+        """Nettoie, retire les commentaires, puis aiguille une ligne."""
+        line = raw.split("#", 1)[0].strip()
+        if not line:
             return
         if ":" not in line:
             raise ParseError(line_no, f"missing ':' separator in {line!r}")
