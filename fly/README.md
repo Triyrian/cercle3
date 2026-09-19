@@ -32,14 +32,12 @@ This installs the project's only dependencies: `flake8`, `mypy` (linting) and `p
 ```sh
 make run                                   # runs the default map (maps/easy/01_linear_path.txt)
 make run MAP=maps/hard/02_capacity_hell.txt  # runs a specific map
-make visual MAP=maps/easy/01_linear_path.txt  # runs it and opens the graphical replay
 ```
 
 Or call the entry point directly:
 
 ```sh
-python3 fly.py <map_file>            # prints the turn-by-turn move log
-python3 fly.py <map_file> --visual   # same, then opens the graphical replay window
+python3 fly.py <map_file>            # prints the turn-by-turn move log, then opens the graphical replay window
 ```
 
 Other Makefile targets:
@@ -65,7 +63,7 @@ D4-goal
 turns: 6
 ```
 
-In the graphical replay (`--visual`), use the on-screen **`< Prev` / `Next >`** buttons, the arrow keys, `Space`, `Home` or `End` to step through the exact same run turn by turn; drag with the mouse to pan and scroll to zoom.
+In the graphical replay, which opens automatically once the move log is printed, use the on-screen **`< Prev` / `Next >`** buttons, the arrow keys, `Space`, `Home` or `End` to step through the exact same run turn by turn; drag with the mouse to pan and scroll to zoom.
 
 ## Algorithm & Implementation Strategy
 

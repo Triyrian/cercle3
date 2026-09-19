@@ -306,5 +306,5 @@ class Visualization:
 if __name__ == "__main__":
     raise SystemExit(
         "visual.py is not an entry point: "
-        "run 'python3 fly.py <map_file> --visual' (or 'make visual')"
+        "run 'python3 fly.py <map_file>' (or 'make run')"
     )

@@ -3,7 +3,7 @@ MAIN = fly.py
 MAP ?= maps/easy/01_linear_path.txt
 
 .DEFAULT_GOAL := run
-.PHONY: install run visual debug clean lint lint-strict
+.PHONY: install run debug clean lint lint-strict
 
 install:
 	@echo "Installing dependencies..."
@@ -11,13 +11,8 @@ install:
 
 
 run:
-	@echo "Running project..."
-	$(PYTHON) $(MAIN) $(MAP)
-
-
-visual:
 	@echo "Running project with visualisation..."
-	$(PYTHON) $(MAIN) $(MAP) --visual
+	$(PYTHON) $(MAIN) $(MAP)
 
 
 debug:
