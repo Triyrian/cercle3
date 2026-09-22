@@ -41,8 +41,7 @@ class Visualization:
     def __init__(
         self,
         network: Network,
-        snapshots: list[dict[int, DroneState]],
-        log: list[list[str]],
+        snapshots: list[dict[int, DroneState]], log: list[list[str]]
     ) -> None:
         """Ouvre la fenêtre et centre la caméra sur ``network``."""
         self.network = network
@@ -227,13 +226,21 @@ class Visualization:
     # ------------------------------------------------------------------
     # Interaction
     # ------------------------------------------------------------------
+
+    def _goto(self, index: int) -> None:
+        """Change de tour, en bornant l'index."""
+        index = max(0, min(len(self.snapshots) - 1, index))
+        if index == self.turn_index:
+            return  # butee : inutile de reimprimer le meme rapport
+        self.turn_index = index
+
     def _go_prev(self) -> None:
         """Recule le rejeu d'un tour."""
-        self.turn_index = max(0, self.turn_index - 1)
+        self._goto(self.turn_index - 1)
 
     def _go_next(self) -> None:
         """Avance le rejeu d'un tour."""
-        self.turn_index = min(len(self.snapshots) - 1, self.turn_index + 1)
+        self._goto(self.turn_index + 1)
 
     def _handle_zoom(self, event: pygame.event.Event) -> None:
         """Zoome en gardant fixe le point situé sous la souris."""
@@ -259,10 +266,6 @@ class Visualization:
                 self._go_next()
             elif event.key == pygame.K_LEFT:
                 self._go_prev()
-            elif event.key == pygame.K_HOME:
-                self.turn_index = 0
-            elif event.key == pygame.K_END:
-                self.turn_index = len(self.snapshots) - 1
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self._next_rect.collidepoint(event.pos):
                 self._go_next()

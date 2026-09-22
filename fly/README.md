@@ -63,7 +63,7 @@ D4-goal
 turns: 6
 ```
 
-In the graphical replay, which opens automatically once the move log is printed, use the on-screen **`< Prev` / `Next >`** buttons, the arrow keys, `Space`, `Home` or `End` to step through the exact same run turn by turn; drag with the mouse to pan and scroll to zoom.
+In the graphical replay, which opens automatically once the move log is printed, use the on-screen **`< Prev` / `Next >`** buttons, the arrow keys or `Space` to step through the exact same run turn by turn; drag with the mouse to pan and scroll to zoom.
 
 ## Algorithm & Implementation Strategy
 
@@ -101,7 +101,6 @@ Every mandatory benchmark is met or beaten; the optional challenger map is solve
 `visual.py` is a **secondary implementation**: it is not part of the routing logic itself, but a `pygame`-based graphical interface used to *visualize* and *check* that the main program (parser, pathfinding, turn engine) behaves correctly. Unlike the rest of the project, this module was written **almost entirely by AI** (see *AI usage* below); I reviewed and tested it, but I did not author it. It gives two layers of feedback:
 
 - **The static map**: every zone drawn as a circle colored by its type (or by its own `color` metadata when set), the `start` and `end` hubs outlined in green/red, connections drawn as lines, and a free-form camera (click-drag to pan, scroll wheel to zoom, anchored under the cursor).
-- **The live simulation replay**: each drone is drawn as a small numbered marker at its zone for the selected turn — or halfway along a connection when it's mid-flight toward a `restricted` zone — with drones sharing a zone spread out in a small circle so none are hidden behind another. A HUD in the top-left shows the current turn, how many drones have been delivered, and that turn's exact move list. **`< Prev` / `Next >`** buttons (also bound to the arrow keys, `Space`, `Home`, `End`) let you step through the run one turn at a time.
 
 This turns the visualization from a static picture of the map into an actual debugging and understanding tool: you can watch exactly which drone waits for which zone to free up, see the two-turn restricted transit happen, and confirm capacity limits are never exceeded — all by stepping through the same log that `format_output()` prints to the terminal.
 
