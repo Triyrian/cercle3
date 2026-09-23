@@ -3,8 +3,8 @@
 Fournit l'algorithme de Dijkstra sur le graphe pondéré des zones (coût =
 ``move_cost`` de la zone d'arrivée, zones ``blocked`` ignorées, zones
 ``priority`` gagnant les égalités) ainsi que :func:`find_paths`, qui en
-extrait plusieurs chemins disjoints pour l'ordonnanceur en relançant
-Dijkstra avec les zones déjà utilisées bannies.
+extrait plusieurs chemins pour l'ordonnanceur en relançant Dijkstra avec
+les zones arrivées à saturation bannies.
 """
 
 import sys
@@ -76,12 +76,14 @@ def dijkstra(
 
 
 def find_paths(network: Network, start: str, end: str) -> list[list[str]]:
-    """Renvoie des chemins disjoints (hors extrémités) de ``start`` à ``end``.
+    """Renvoie plusieurs chemins de ``start`` à ``end``, du moins cher au plus.
 
     Relance :func:`dijkstra` en boucle ; après chaque chemin trouvé, ses
-    zones intérieures sont bannies pour forcer le suivant à passer
-    ailleurs. S'arrête quand plus aucun chemin n'existe, ou quand un lien
-    direct start-end ne laisse rien à bannir.
+    zones intérieures sont comptées, et une zone n'est bannie qu'une fois
+    son ``max_drones`` atteint. Deux chemins peuvent donc se recouvrir
+    tant que les zones partagées ont la capacité de les porter. S'arrête
+    quand plus aucun chemin nouveau n'existe, ou quand un lien direct
+    start-end ne laisse rien à saturer.
 
     Args:
         network: La carte à parcourir.
@@ -92,16 +94,23 @@ def find_paths(network: Network, start: str, end: str) -> list[list[str]]:
         La liste des chemins, le moins coûteux d'abord (peut être vide).
     """
     paths: list[list[str]] = []
-    banned: frozenset[str] = frozenset()
+    used: dict[str, int] = {}
+    seen: set[tuple[str, ...]] = set()
     while True:
+        banned = frozenset(
+            name for name, count in used.items()
+            if count >= network.zones[name].max_drones
+        )
         path = dijkstra(network, start, end, banned)
-        if path is None:
+        if path is None or tuple(path) in seen:
             break
+        seen.add(tuple(path))
         paths.append(path)
         interior = path[1:-1]
         if not interior:
-            break  # lien direct start-end : rien a bannir
-        banned |= frozenset(interior)
+            break  # lien direct start-end : rien a saturer
+        for name in interior:
+            used[name] = used.get(name, 0) + 1
     return paths
 
 
