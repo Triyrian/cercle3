@@ -84,11 +84,11 @@ The pipeline is split into four independent, single-purpose modules, wired toget
 | Map | Drones | Turns | Target | Result |
 |---|---|---|---|---|
 | easy/01_linear_path | 2 | 4 | ≤ 6 | ✅ |
-| easy/02_simple_fork | 4 | 6 | ≤ 8 | ✅ |
+| easy/02_simple_fork | 4 | 4 | ≤ 8 | ✅ |
 | easy/03_basic_capacity | 4 | 4 | ≤ 6 | ✅ |
 | medium/01_dead_end_trap | 5 | 8 | ≤ 12 | ✅ |
 | medium/02_circular_loop | 6 | 15 | ≤ 15 | ✅ |
-| medium/03_priority_puzzle | 5 | 8 | ≤ 12 | ✅ |
+| medium/03_priority_puzzle | 5 | 7 | ≤ 12 | ✅ |
 | hard/01_maze_nightmare | 8 | 13 | ≤ 30 | ✅ |
 | hard/02_capacity_hell | 12 | 16 | ≤ 35 | ✅ |
 | hard/03_ultimate_challenge | 15 | 26 | ≤ 45 | ✅ |
