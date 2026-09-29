@@ -78,11 +78,12 @@ def dijkstra(
 def find_paths(network: Network, start: str, end: str) -> list[list[str]]:
     """Renvoie plusieurs chemins de ``start`` à ``end``, du moins cher au plus.
 
-    Relance :func:`dijkstra` en boucle ; après chaque chemin trouvé, ses
-    zones intérieures sont comptées, et une zone n'est bannie qu'une fois
-    son ``max_drones`` atteint. Deux chemins peuvent donc se recouvrir
-    tant que les zones partagées ont la capacité de les porter. S'arrête
-    quand plus aucun chemin nouveau n'existe, ou quand un lien direct
+    Relance :func:`dijkstra` en boucle. Chaque chemin trouvé consomme,
+    dans toutes ses zones intérieures, la capacité restante de la plus
+    remplie ; une zone est bannie dès que son ``max_drones`` est atteint.
+    Deux chemins peuvent donc se recouvrir tant que les zones partagées
+    ont de la place, et un même chemin ne peut pas être trouvé deux fois.
+    S'arrête quand plus aucun chemin n'existe, ou quand un lien direct
     start-end ne laisse rien à saturer.
 
     Args:
@@ -95,22 +96,25 @@ def find_paths(network: Network, start: str, end: str) -> list[list[str]]:
     """
     paths: list[list[str]] = []
     used: dict[str, int] = {}
-    seen: set[tuple[str, ...]] = set()
     while True:
         banned = frozenset(
             name for name, count in used.items()
             if count >= network.zones[name].max_drones
         )
         path = dijkstra(network, start, end, banned)
-        if path is None or tuple(path) in seen:
+        if path is None:
             break
-        seen.add(tuple(path))
         paths.append(path)
         interior = path[1:-1]
         if not interior:
             break  # lien direct start-end : rien a saturer
+        # sature d'un coup la zone la plus remplie : le chemin ne revient plus
+        step = min(
+            network.zones[name].max_drones - used.get(name, 0)
+            for name in interior
+        )
         for name in interior:
-            used[name] = used.get(name, 0) + 1
+            used[name] = used.get(name, 0) + step
     return paths
 
 
