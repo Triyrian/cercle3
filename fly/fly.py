@@ -16,10 +16,14 @@ USAGE = "usage: python fly.py <map_file>"
 def main() -> int:
     """Analyse les arguments, lance la simulation et affiche le bilan."""
     args = sys.argv[1:]
-    if len(args) != 1:
+    if not args or len(args) > 2:
+        print(USAGE, file=sys.stderr)
+        return 1
+    if len(args) == 2 and args[1] != "--capacity-info":
         print(USAGE, file=sys.stderr)
         return 1
     map_file = args[0]
+    want_capacity = len(args) == 2
 
     try:
         network = Parser().parse_file(map_file)
@@ -39,7 +43,11 @@ def main() -> int:
 
     try:
         from visual import Visualization
-        Visualization(network, simulator.snapshots, simulator.log).run()
+        Visualization(
+            network,
+            simulator.snapshots,
+            simulator.log,
+            capacity_info=want_capacity).run()
     except (ImportError, RuntimeError) as error:
         print(f"visualization error: {error}", file=sys.stderr)
         return 1

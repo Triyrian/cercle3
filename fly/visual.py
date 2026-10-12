@@ -7,6 +7,7 @@ courant et ses mouvements, et les boutons ``< Prev`` / ``Next >`` (ou le
 clavier) permettent d'avancer pas à pas.
 """
 
+from collections import Counter
 import math
 
 import pygame
@@ -41,13 +42,15 @@ class Visualization:
     def __init__(
         self,
         network: Network,
-        snapshots: list[dict[int, DroneState]], log: list[list[str]]
+        snapshots: list[dict[int, DroneState]],
+        log: list[list[str]], capacity_info: bool = False
     ) -> None:
         """Ouvre la fenêtre et centre la caméra sur ``network``."""
         self.network = network
         self.snapshots = snapshots
         self.log = log
         self.turn_index = 0
+        self.capacity_info = capacity_info
 
         pygame.init()
         self.screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
@@ -233,6 +236,8 @@ class Visualization:
         if index == self.turn_index:
             return  # butee : inutile de reimprimer le meme rapport
         self.turn_index = index
+        if self.capacity_info:
+            self.print_capacity_info()
 
     def _go_prev(self) -> None:
         """Recule le rejeu d'un tour."""
@@ -285,6 +290,21 @@ class Visualization:
         elif event.type == pygame.MOUSEWHEEL:
             self._handle_zoom(event)
         return True
+
+    def print_capacity_info(self) -> None:
+        tour = self.turn_index
+        snap = self.snapshots[tour]
+        occ = Counter(s.target or s.zone for s in snap.values())
+        used: Counter[frozenset[str]] = Counter()
+        if tour > 0:
+            for did, s0 in self.snapshots[tour - 1].items():
+                cible = snap[did].target or snap[did].zone
+                if s0.target is None and cible != s0.zone:
+                    used[frozenset((s0.zone, cible))] += 1
+        for z in self.network.zones.values():
+            print(f"{z.name}: {occ[z.name]}/{z.max_drones}")
+        for c in self.network.connections:
+            print(f"{c.zone_a}-{c.zone_b}:{used[c.key]}/{c.max_link_capacity}")
 
     def run(self) -> None:
         """Affiche la fenêtre et boucle jusqu'à sa fermeture."""
