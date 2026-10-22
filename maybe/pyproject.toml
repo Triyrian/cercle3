@@ -1,0 +1,38 @@
+[project]
+name = "call-me-maybe"
+version = "0.1.0"
+description = "Function calling on a small LLM with constrained decoding."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "llm-sdk",
+    "numpy>=1.26",
+    "pydantic>=2.6",
+]
+
+# Installé d'office par `uv sync` (sert à `make lint` et à pytest).
+[dependency-groups]
+dev = [
+    "flake8>=7.0",
+    "mypy>=1.8",
+    "pytest>=8.0",
+]
+
+# llm_sdk/ : paquet fourni avec le sujet, copié à côté de src/.
+# Non-editable : Python >= 3.13 ignore les .pth cachés (iCloud, macOS).
+[tool.uv.sources]
+llm-sdk = { path = "llm_sdk" }
+
+[tool.mypy]
+python_version = "3.10"
+plugins = ["pydantic.mypy"]
+exclude = ["^\\.venv/", "^llm_sdk/"]
+
+# SDK fourni, sans annotations de type : mypy le traite en Any.
+[[tool.mypy.overrides]]
+module = ["llm_sdk", "llm_sdk.*"]
+follow_imports = "skip"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
