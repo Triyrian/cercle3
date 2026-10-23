@@ -145,6 +145,11 @@ and written with `json.dump`.
 - **`llm_sdk` as a regular dependency**: an editable install relies on a `.pth`
   file, which Python 3.13+ ignores when it is hidden (this happens in a macOS
   iCloud folder).
+- **CPU build of torch on Linux**: the SDK needs torch, whose default Linux
+  build pulls about 3 GB of CUDA packages (too much for a school session).
+  `torch` is listed in `pyproject.toml` only to take it from the PyTorch CPU
+  index on Linux (about 200 MB); our code never imports it. A full run on CPU
+  takes about a minute, with the same answers.
 
 ## Performance analysis
 

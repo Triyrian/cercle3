@@ -8,6 +8,9 @@ dependencies = [
     "llm-sdk",
     "numpy>=1.26",
     "pydantic>=2.6",
+    # Jamais importé : déjà requis par llm_sdk, déclaré ici seulement pour
+    # choisir sa version CPU sur Linux (voir [tool.uv.sources]).
+    "torch",
 ]
 
 # Installé d'office par `uv sync` (sert à `make lint` et à pytest).
@@ -22,6 +25,13 @@ dev = [
 # Non-editable : Python >= 3.13 ignore les .pth cachés (iCloud, macOS).
 [tool.uv.sources]
 llm-sdk = { path = "llm_sdk" }
+# Linux : torch CPU (~200 Mo) au lieu de CUDA (~3 Go de paquets nvidia).
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.mypy]
 python_version = "3.10"
