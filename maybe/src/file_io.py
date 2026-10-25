@@ -16,14 +16,9 @@ _PROMPTS_ADAPTER = TypeAdapter(list[PromptItem])
 def read_json(path: Path) -> Any:
     """Lit un fichier JSON.
 
-    Args:
-        path: Fichier à lire.
-
-    Returns:
-        Le contenu JSON décodé.
-
-    Raises:
-        InputFileError: Fichier absent, illisible ou JSON invalide.
+    Arg: path: Fichier à lire.
+    Return: Le contenu JSON décodé.
+    Raise: InputFileError: Fichier absent, illisible ou JSON invalide.
     """
     try:
         with path.open("r", encoding="utf-8") as file:
@@ -39,14 +34,9 @@ def read_json(path: Path) -> Any:
 def load_function_definitions(path: Path) -> list[FunctionDefinition]:
     """Charge et valide ``functions_definition.json``.
 
-    Args:
-        path: Fichier à lire.
-
-    Returns:
-        Fonctions disponibles (ordre du fichier).
-
-    Raises:
-        InputFileError: Fichier invalide ou liste vide.
+    Arg: path: Fichier à lire.
+    Return: Fonctions disponibles (ordre du fichier).
+    Raise: InputFileError: Fichier invalide ou liste vide.
     """
     try:
         functions = _FUNCTIONS_ADAPTER.validate_python(read_json(path))
@@ -60,14 +50,9 @@ def load_function_definitions(path: Path) -> list[FunctionDefinition]:
 def load_prompts(path: Path) -> list[PromptItem]:
     """Charge et valide ``function_calling_tests.json``.
 
-    Args:
-        path: Fichier à lire.
-
-    Returns:
-        Prompts à traiter (ordre du fichier).
-
-    Raises:
-        InputFileError: Fichier invalide.
+    Arg: path: Fichier à lire.
+    Return: Prompts à traiter (ordre du fichier).
+    Raise: InputFileError: Fichier invalide.
     """
     try:
         return _PROMPTS_ADAPTER.validate_python(read_json(path))
@@ -78,12 +63,9 @@ def load_prompts(path: Path) -> list[PromptItem]:
 def save_results(path: Path, results: list[FunctionCall]) -> None:
     """Écrit les appels en tableau JSON.
 
-    Args:
-        path: Fichier à écrire (dossiers parents créés).
-        results: Appels de fonction à écrire.
-
-    Raises:
-        OutputFileError: Fichier impossible à écrire.
+    Args: path: Fichier à écrire (dossiers parents créés).
+          results: Appels de fonction à écrire.
+    Raise: OutputFileError: Fichier impossible à écrire.
     """
     payload = [result.model_dump() for result in results]
     try:

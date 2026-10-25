@@ -3,7 +3,6 @@
 Une contrainte vérifie le texte généré pour UNE valeur (la structure
 JSON autour, comme ``{"name": "`` ou ``, "b": ``, est imposée par
 ``FunctionCaller``). Elle répond à trois questions :
-
 * ``allowed_mask`` : quels tokens ajouter en gardant le texte valide ?
 * ``is_complete`` : le texte est-il déjà une valeur valide (arrêt permis) ?
 * ``to_python`` : quelle valeur Python finale ?
@@ -19,10 +18,11 @@ from src.errors import DecodingError
 from src.models import JsonType, ParameterValue
 from src.vocabulary import BoolMask, Vocabulary
 
-# Sans exposant ("1e5") : les prompts n'en utilisent pas, et "1e999"
-# donnerait float("inf"), que json.dump écrit Infinity (JSON invalide).
 NUMBER_RE = re.compile(r"-?(0|[1-9][0-9]*)(\.[0-9]+)?")
-"""Nombre complet : partie entière, moins et décimales optionnels."""
+"""Nombre complet : moins optionnel, partie entière, décimales optionnelles.
+
+Pas d'exposant : "1e999" deviendrait Infinity, qui n'est pas du JSON valide.
+"""
 
 INTEGER_RE = re.compile(r"-?(0|[1-9][0-9]*)")
 """Entier complet : '-' optionnel, sans zéro initial."""
@@ -38,13 +38,10 @@ class Constraint(BaseModel):
     def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
         """Renvoie les tokens gardant ``generated + token`` valide.
 
-        Args:
-            generated: Texte déjà généré pour cette valeur.
-            vocab: Vocabulaire décodé.
-
-        Returns:
-            Un masque de taille ``vocab.size``. Un token au texte vide ne
-            doit jamais être autorisé (il n'ajouterait rien).
+        Args: generated: Texte déjà généré pour cette valeur.
+              vocab: Vocabulaire décodé.
+        Return: Un masque de taille ``vocab.size``. Un token au texte vide ne
+                doit jamais être autorisé (il n'ajouterait rien).
         """
 
     @abstractmethod
@@ -55,8 +52,7 @@ class Constraint(BaseModel):
     def to_python(self, generated: str) -> ParameterValue:
         """Convertit le texte final en valeur Python.
 
-        Raises:
-            DecodingError: Le texte n'est pas valide.
+        Raise: DecodingError: Le texte n'est pas valide.
         """
 
 
@@ -200,11 +196,8 @@ class StringConstraint(Constraint):
 def constraint_for(param_type: JsonType) -> Constraint:
     """Renvoie la contrainte d'un type de paramètre.
 
-    Args:
-        param_type: Type de ``functions_definition.json``.
-
-    Returns:
-        Contrainte neuve pour ce type.
+    Arg: param_type: Type de ``functions_definition.json``.
+    Return: Contrainte neuve pour ce type.
     """
     if param_type == "string":
         return StringConstraint()

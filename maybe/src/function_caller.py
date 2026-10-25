@@ -1,9 +1,11 @@
-"""Convertit un prompt en ``FunctionCall``.
+"""Transforme un prompt en ``FunctionCall``, en deux parties.
 
-On écrit la structure JSON (tokens forcés) ; le LLM ne remplit que les
-valeurs, chacune sous la contrainte de son type::
-
-    {"name": "<ChoiceConstraint>", "parameters": {"a": <NumberConstraint>}}
+1. Le prompt (``build_prompt``) : le texte donné au LLM, au format de chat
+   de Qwen3. Il aide seulement le modèle à *choisir* ; le format de sortie
+   est garanti par le décodage contraint, pas par ces instructions.
+2. L'appel (``FunctionCaller``) : le programme écrit lui-même la structure
+   JSON, le LLM ne remplit que les valeurs, chacune sous la contrainte de
+   son type : ``{"name": "<Choice>", "parameters": {"a": <Number>}}``.
 """
 
 from pydantic import BaseModel
@@ -13,7 +15,50 @@ from src.decoder import ConstrainedDecoder
 from src.errors import DecodingError
 from src.llm_engine import LLMEngine
 from src.models import FunctionCall, FunctionDefinition, ParameterValue
-from src.prompt_builder import build_prompt
+
+# 1. Le prompt donné au LLM
+
+IM_START = "<|im_start|>"
+IM_END = "<|im_end|>"
+NO_THINK = "<think>\n\n</think>\n\n"
+"""Bloc de réflexion vide : coupe le "thinking" de Qwen3."""
+
+SYSTEM_INSTRUCTIONS = (
+    "You translate a user request into one function call. "
+    "Choose the function that fulfils the request and copy the argument "
+    "values from the request.\n"
+)
+
+
+def describe_function(function: FunctionDefinition) -> str:
+    """Décrit une fonction en une ligne.
+
+    Arg: function: Fonction à décrire.
+    Return: Ex. ``- fn_add_numbers(a: number, b: number): Add two numbers.``
+    """
+    params = ", ".join(
+        f"{name}: {spec.type}" for name, spec in function.parameters.items()
+    )
+    return f"- {function.name}({params}): {function.description}"
+
+
+def build_prompt(user_prompt: str, functions: list[FunctionDefinition]) -> str:
+    """Construit le prompt de chat complet, jusqu'au début du JSON.
+
+    Args: user_prompt: Requête en texte libre.
+          functions: Fonctions proposées.
+    Return: Le texte à encoder.
+    """
+    catalog = "\n".join(describe_function(function) for function in functions)
+    return (
+        f"{IM_START}system\n{SYSTEM_INSTRUCTIONS}"
+        f"Available functions:\n{catalog}{IM_END}\n"
+        f"{IM_START}user\n{user_prompt}{IM_END}\n"
+        f"{IM_START}assistant\n{NO_THINK}"
+    )
+
+
+# 2. L'appel de fonction : squelette JSON + décodage contraint
 
 NAME_OPENING = '{"name": "'
 PARAMETERS_OPENING = '", "parameters": {'
@@ -34,14 +79,9 @@ class FunctionCaller(BaseModel):
     def call(self, prompt: str) -> FunctionCall:
         """Traite un prompt en langage naturel.
 
-        Args:
-            prompt: La requête.
-
-        Returns:
-            L'appel de fonction validé.
-
-        Raises:
-            DecodingError: Impossible de compléter la sortie.
+        Arg: prompt: La requête.
+        Return: L'appel de fonction validé.
+        Raise: DecodingError: Impossible de compléter la sortie.
         """
         input_ids = self.engine.encode(build_prompt(prompt, self.functions))
         function, input_ids = self.choose_function(input_ids)
@@ -55,11 +95,8 @@ class FunctionCaller(BaseModel):
     ) -> tuple[FunctionDefinition, list[int]]:
         """Le LLM choisit un nom de fonction parmi celles définies.
 
-        Args:
-            input_ids: Prompt encodé.
-
-        Returns:
-            La fonction choisie et les ids après son nom.
+        Arg: input_ids: Prompt encodé.
+        Return: La fonction choisie et les ids après son nom.
         """
         ids = input_ids + self.engine.encode(NAME_OPENING)
         names = ChoiceConstraint(options=[f.name for f in self.functions])
@@ -71,12 +108,9 @@ class FunctionCaller(BaseModel):
     ) -> dict[str, ParameterValue]:
         """Génère chaque argument de ``function``, dans l'ordre défini.
 
-        Args:
-            input_ids: Ids finissant après le nom de fonction.
-            function: Fonction choisie.
-
-        Returns:
-            Argument -> valeur Python.
+        Args: input_ids: Ids finissant après le nom de fonction.
+              function: Fonction choisie.
+        Return: Argument -> valeur Python.
         """
         arguments: dict[str, ParameterValue] = {}
         ids = input_ids
@@ -101,12 +135,8 @@ class FunctionCaller(BaseModel):
         correction : sauter un prompt décalerait toutes les suivantes.
         On écrit donc une entrée valide (1re fonction, valeurs neutres),
         comptée fausse mais qui garde l'ordre.
-
-        Args:
-            prompt: La requête qui a échoué.
-
-        Returns:
-            Un appel conforme au schéma.
+        Arg: prompt: La requête qui a échoué.
+        Return: Un appel conforme au schéma.
         """
         function = self.functions[0]
         return FunctionCall(prompt=prompt, name=function.name, parameters={
@@ -117,8 +147,7 @@ class FunctionCaller(BaseModel):
     def get_function(self, name: str) -> FunctionDefinition:
         """Trouve une fonction.
 
-        Raises:
-            DecodingError: Aucune fonction de ce nom.
+        Raise: DecodingError: Aucune fonction de ce nom.
         """
         for function in self.functions:
             if function.name == name:

@@ -7,7 +7,7 @@ décodage contraint, il faut leur *vrai* texte, décodé ici une fois.
 """
 
 import json
-from typing import Any, TypeAlias
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -15,7 +15,7 @@ from pydantic import BaseModel, PrivateAttr
 
 from src.errors import ModelLoadError
 
-BoolMask: TypeAlias = npt.NDArray[np.bool_]
+BoolMask = npt.NDArray[np.bool_]
 """Un booléen par id de token : True = token autorisé."""
 
 
@@ -25,9 +25,7 @@ def bytes_to_unicode() -> dict[int, str]:
     Un octet imprimable garde son caractère. Les autres (caractères de
     contrôle, espace...) sont décalés, dans l'ordre, vers
     ``chr(256)``, ``chr(257)``... donc l'espace (32) devient ``"Ġ"``.
-
-    Returns:
-        Un dict de 256 entrées, ex. ``{32: "Ġ", 65: "A", ...}``.
+    Return: Un dict de 256 entrées, ex. ``{32: "Ġ", 65: "A", ...}``.
     """
     printable: dict[int, str] = (
         {i: chr(i) for i in range(33, 127)}
@@ -42,15 +40,11 @@ def decode_token(raw: str, byte_decoder: dict[str, int]) -> str:
     """Donne le texte réel d'une entrée brute du vocabulaire.
 
     Exemple : ``"Ġhello"`` -> ``" hello"``.
-
-    Args:
-        raw: Clé de ``vocab.json``.
-        byte_decoder: Table ``bytes_to_unicode()`` inversée.
-
-    Returns:
-        Le texte décodé, ou ``""`` si les octets seuls ne sont pas de
-        l'UTF-8 valide (bout de caractère multi-octet) : ces tokens sont
-        toujours interdits en décodage contraint.
+    Args: raw: Clé de ``vocab.json``.
+          byte_decoder: Table ``bytes_to_unicode()`` inversée.
+    Return: Le texte décodé, ou ``""`` si les octets seuls ne sont pas de
+            l'UTF-8 valide (bout de caractère multi-octet) : ces tokens sont
+            toujours interdits en décodage contraint.
     """
     try:
         return bytes(byte_decoder[char] for char in raw).decode("utf-8")
@@ -74,15 +68,9 @@ class Vocabulary(BaseModel):
         Les tokens spéciaux (``<|im_start|>``...) ne sont pas dans
         ``vocab.json`` : le vocabulaire est donc un peu plus petit que les
         logits, et le décodeur n'en lit que les ``size`` premiers.
-
-        Args:
-            path: Chemin donné par ``LLMEngine.vocab_path()``.
-
-        Returns:
-            Le vocabulaire décodé.
-
-        Raises:
-            ModelLoadError: Fichier illisible.
+        Arg: path: Chemin donné par ``LLMEngine.vocab_path()``.
+        Return: Le vocabulaire décodé.
+        Raise: ModelLoadError: Fichier illisible.
         """
         try:
             with open(path, encoding="utf-8") as file:

@@ -1,8 +1,9 @@
 """Lancement : ``uv run python -m src [--functions_definition F] ...``."""
 
+import argparse
 import sys
+from pathlib import Path
 
-from src.cli import parse_arguments
 from src.decoder import ConstrainedDecoder
 from src.errors import CallMeMaybeError
 from src.file_io import load_function_definitions, load_prompts, save_results
@@ -12,6 +13,34 @@ from src.models import FunctionCall, PromptItem, RunConfig
 from src.vocabulary import Vocabulary
 
 
+def parse_arguments() -> RunConfig:
+    """Lit les options de ``python -m src`` (défauts : fichiers du sujet).
+
+    Return: La configuration, validée par pydantic.
+    """
+    parser = argparse.ArgumentParser(
+        prog="python -m src",
+        description="Translate natural language prompts into function calls.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--functions_definition", type=Path,
+        default=Path("data/input/functions_definition.json"),
+        help="JSON file of available functions",
+    )
+    parser.add_argument(
+        "--input", type=Path,
+        default=Path("data/input/function_calling_tests.json"),
+        help="JSON file of prompts",
+    )
+    parser.add_argument(
+        "--output", type=Path,
+        default=Path("data/output/function_calls.json"),
+        help="JSON file to write",
+    )
+    return RunConfig.model_validate(vars(parser.parse_args()))
+
+
 def process_prompts(
     caller: FunctionCaller, prompts: list[PromptItem]
 ) -> list[FunctionCall]:
@@ -19,13 +48,9 @@ def process_prompts(
 
     La moulinette compare la sortie ligne à ligne : en cas d'échec, on
     écrit l'appel de secours pour garder l'ordre.
-
-    Args:
-        caller: FunctionCaller initialisé.
-        prompts: Prompts à traiter.
-
-    Returns:
-        Un appel de fonction par prompt, dans l'ordre d'entrée.
+    Args: caller: FunctionCaller initialisé.
+          prompts: Prompts à traiter.
+    Return: Un appel de fonction par prompt, dans l'ordre d'entrée.
     """
     results: list[FunctionCall] = []
     for index, item in enumerate(prompts, start=1):
@@ -44,8 +69,7 @@ def process_prompts(
 def run(config: RunConfig) -> None:
     """Charge tout, traite les prompts et écrit la sortie.
 
-    Args:
-        config: Configuration CLI validée.
+    Arg: config: Configuration CLI validée.
     """
     functions = load_function_definitions(config.functions_definition)
     prompts = load_prompts(config.input)
@@ -61,8 +85,7 @@ def run(config: RunConfig) -> None:
 def main() -> int:
     """Lance le programme ; toute erreur devient un message clair.
 
-    Returns:
-        Le code de sortie.
+    Return: Le code de sortie.
     """
     try:
         run(parse_arguments())
@@ -72,7 +95,7 @@ def main() -> int:
     except KeyboardInterrupt:
         print("\nInterrupted.", file=sys.stderr)
         return 130
-    except Exception as err:  # dernier recours : jamais de traceback
+    except Exception as err:
         print(f"Unexpected error: {type(err).__name__}: {err}",
               file=sys.stderr)
         return 1

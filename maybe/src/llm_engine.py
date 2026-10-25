@@ -25,12 +25,11 @@ class LLMEngine(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         """Charge le modèle après la validation pydantic.
 
-        Raises:
-            ModelLoadError: Échec du téléchargement ou du chargement.
+        Raise: ModelLoadError: Échec du téléchargement ou du chargement.
         """
         try:
             self._llm = Small_LLM_Model(LLM_NAME)
-        except Exception as err:  # erreurs torch / HF / réseau variées
+        except Exception as err:
             raise ModelLoadError(
                 f"cannot load model {LLM_NAME!r}: {err}"
             ) from err
@@ -38,11 +37,8 @@ class LLMEngine(BaseModel):
     def encode(self, text: str) -> list[int]:
         """Encode ``text`` en ids de tokens.
 
-        Args:
-            text: Texte à encoder.
-
-        Returns:
-            Ids de tokens.
+        Arg: text: Texte à encoder.
+        Return: Ids de tokens.
         """
         tensor = self._llm.encode(text)
         return [int(token_id) for token_id in tensor[0].tolist()]
@@ -52,11 +48,8 @@ class LLMEngine(BaseModel):
     ) -> npt.NDArray[np.float32]:
         """Lance le modèle, renvoie les logits du token suivant.
 
-        Args:
-            input_ids: Toute la séquence actuelle (prompt + généré).
-
-        Returns:
-            Un logit par id de token du modèle.
+        Arg: input_ids: Toute la séquence actuelle (prompt + généré).
+        Return: Un logit par id de token du modèle.
         """
         logits = self._llm.get_logits_from_input_ids(input_ids)
         return np.asarray(logits, dtype=np.float32)

@@ -137,9 +137,9 @@ and written with `json.dump`.
   be decoded is reported and replaced by a neutral fallback call (first
   function, zero values): the output keeps one entry per prompt, in order,
   because the moulinette compares the answers line by line.
-- **Small modules**: `cli`, `file_io`, `models`, `prompt_builder`, `llm_engine`
-  (the only module that uses the SDK, public methods only), `vocabulary`,
-  `constraints`, `decoder`, `function_caller`.
+- **Small modules**: `file_io`, `models`, `llm_engine` (the only module that
+  uses the SDK, public methods only), `vocabulary`, `constraints`, `decoder`,
+  `function_caller` (the prompt, then the JSON skeleton).
 - **Scan once per value**: the candidate tokens (number tokens, "safe" string
   tokens) are found once; each step then only tests a few hundred others.
 - **`llm_sdk` as a regular dependency**: an editable install relies on a `.pth`

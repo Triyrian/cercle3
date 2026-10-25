@@ -36,17 +36,11 @@ class ConstrainedDecoder(BaseModel):
         d'arrêt si le texte est complet), logits du modèle, meilleur token
         autorisé. Un token d'arrêt finit la valeur sans être gardé :
         l'appelant écrit lui-même la suite du JSON.
-
-        Args:
-            input_ids: Prompt + JSON déjà généré (non modifié).
-            constraint: Règles de la valeur.
-            stop: Caractère de fin de valeur (``"``, ``,`` ou ``}``).
-
-        Returns:
-            Le texte généré et les ids étendus.
-
-        Raises:
-            DecodingError: Aucune valeur valide possible.
+        Args: input_ids: Prompt + JSON déjà généré (non modifié).
+              constraint: Règles de la valeur.
+              stop: Caractère de fin de valeur (``"``, ``,`` ou ``}``).
+        Return: Le texte généré et les ids étendus.
+        Raise: DecodingError: Aucune valeur valide possible.
         """
         ids = list(input_ids)
         text = ""
@@ -75,12 +69,8 @@ class ConstrainedDecoder(BaseModel):
 
         Les interdits valent ``-np.inf`` dans une copie (``np.where``) :
         ``np.argmax`` ne peut pas les choisir. Au moins un doit passer.
-
-        Args:
-            logits: Logits du token suivant, taille ``vocab.size``.
-            allowed: Masque des tokens autorisés (idem).
-
-        Returns:
-            Id du token choisi.
+        Args: logits: Logits du token suivant, taille ``vocab.size``.
+              allowed: Masque des tokens autorisés (idem).
+        Return: Id du token choisi.
         """
         return int(np.argmax(np.where(allowed, logits, -np.inf)))

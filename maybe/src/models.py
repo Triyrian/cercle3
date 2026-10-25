@@ -1,14 +1,14 @@
 """Modèles pydantic partagés par tout le projet."""
 
 from pathlib import Path
-from typing import Literal, TypeAlias
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
-JsonType: TypeAlias = Literal["number", "integer", "string", "boolean"]
+JsonType = Literal["number", "integer", "string", "boolean"]
 """Types de paramètre gérés par ``functions_definition.json``."""
 
-ParameterValue: TypeAlias = bool | int | float | str
+ParameterValue = bool | int | float | str
 """Valeur Python d'un argument décodé."""
 
 
