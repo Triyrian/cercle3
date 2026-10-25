@@ -42,22 +42,23 @@ class ConstrainedDecoder(BaseModel):
         Return: Le texte généré et les ids étendus.
         Raise: DecodingError: Aucune valeur valide possible.
         """
-        ids = list(input_ids)
+        token_ids = list(input_ids)
         text = ""
         for _ in range(self.max_tokens):
-            allowed = constraint.allowed_mask(text, self.vocab)
+            allowed_tokens = constraint.allowed_mask(text, self.vocab)
             if constraint.is_complete(text):
-                allowed = allowed | self.vocab.mask_starting_with(stop)
-            if not allowed.any():
+                stop_tokens = self.vocab.mask_starting_with(stop)
+                allowed_tokens = allowed_tokens | stop_tokens
+            if not allowed_tokens.any():
                 break
-            logits = self.engine.next_token_logits(ids)[:self.vocab.size]
-            token = self.best_token(logits, allowed)
-            if self.vocab.texts[token].startswith(stop):
-                return GenerationResult(text=text, input_ids=ids)
-            text += self.vocab.texts[token]
-            ids.append(token)
+            logits = self.engine.next_token_logits(token_ids)[:self.vocab.size]
+            token_id = self.best_token(logits, allowed_tokens)
+            if self.vocab.texts[token_id].startswith(stop):
+                return GenerationResult(text=text, input_ids=token_ids)
+            text += self.vocab.texts[token_id]
+            token_ids.append(token_id)
         if constraint.is_complete(text):
-            return GenerationResult(text=text, input_ids=ids)
+            return GenerationResult(text=text, input_ids=token_ids)
         name = type(constraint).__name__
         raise DecodingError(f"{name}: cannot complete {text!r}")
 

@@ -9,7 +9,7 @@ from src.errors import CallMeMaybeError
 from src.file_io import load_function_definitions, load_prompts, save_results
 from src.function_caller import FunctionCaller
 from src.llm_engine import LLMEngine
-from src.models import FunctionCall, PromptItem, RunConfig
+from src.models import FunctionCall, RunConfig
 from src.vocabulary import Vocabulary
 
 
@@ -41,34 +41,11 @@ def parse_arguments() -> RunConfig:
     return RunConfig.model_validate(vars(parser.parse_args()))
 
 
-def process_prompts(
-    caller: FunctionCaller, prompts: list[PromptItem]
-) -> list[FunctionCall]:
-    """Traite chaque prompt, sans jamais en sauter un.
-
-    La moulinette compare la sortie ligne à ligne : en cas d'échec, on
-    écrit l'appel de secours pour garder l'ordre.
-    Args: caller: FunctionCaller initialisé.
-          prompts: Prompts à traiter.
-    Return: Un appel de fonction par prompt, dans l'ordre d'entrée.
-    """
-    results: list[FunctionCall] = []
-    for index, item in enumerate(prompts, start=1):
-        try:
-            call = caller.call(item.prompt)
-        except CallMeMaybeError as err:
-            print(f"[{index}/{len(prompts)}] {item.prompt!r}: {err}"
-                  " -> fallback call", file=sys.stderr)
-            call = caller.fallback_call(item.prompt)
-        else:
-            print(f"[{index}/{len(prompts)}] {item.prompt!r} -> {call.name}")
-        results.append(call)
-    return results
-
-
 def run(config: RunConfig) -> None:
-    """Charge tout, traite les prompts et écrit la sortie.
+    """Charge tout, traite chaque prompt et écrit la sortie.
 
+    Un prompt qui échoue reçoit l'appel de secours : la moulinette compare
+    les réponses ligne à ligne, il ne faut jamais en sauter une.
     Arg: config: Configuration CLI validée.
     """
     functions = load_function_definitions(config.functions_definition)
@@ -78,7 +55,14 @@ def run(config: RunConfig) -> None:
     decoder = ConstrainedDecoder(engine=engine, vocab=vocab)
     caller = FunctionCaller(engine=engine, decoder=decoder,
                             functions=functions)
-    save_results(config.output, process_prompts(caller, prompts))
+    results: list[FunctionCall] = []
+    for item in prompts:
+        try:
+            results.append(caller.call(item.prompt))
+        except CallMeMaybeError as err:
+            print(f"Error on {item.prompt!r}: {err}", file=sys.stderr)
+            results.append(caller.fallback_call(item.prompt))
+    save_results(config.output, results)
     print(f"Results written to {config.output}")
 
 

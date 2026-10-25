@@ -53,9 +53,8 @@ uv run python -m src \
     --output data/output/function_calls.json
 ```
 
-The program prints one line per prompt
-(`[1/11] 'What is the sum of 2 and 3?' -> fn_add_numbers`) and writes a JSON
-array (excerpt, reformatted):
+The program writes a JSON array (excerpt, reformatted), then prints
+`Results written to data/output/function_calls.json`:
 
 ```json
 [

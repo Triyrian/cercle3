@@ -64,16 +64,16 @@ class ChoiceConstraint(Constraint):
     def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
         """N'autorise que les tokens suivant une option.
 
-        Pour chaque option commençant par ``generated``, tout préfixe non
-        vide du reste ``rest`` égal au texte exact d'un token est autorisé.
+        Pour chaque option commençant par ``generated``, tout préfixe non vide
+        du reste ``remaining`` égal au texte exact d'un token est autorisé.
         """
-        ids: list[int] = []
+        token_ids: list[int] = []
         for option in self.options:
             if option.startswith(generated):
-                rest = option[len(generated):]
-                for end in range(1, len(rest) + 1):
-                    ids += vocab.ids_with_text(rest[:end])
-        return vocab.mask_from_ids(ids)
+                remaining = option[len(generated):]
+                for length in range(1, len(remaining) + 1):
+                    token_ids += vocab.ids_with_text(remaining[:length])
+        return vocab.mask_from_ids(token_ids)
 
     def is_complete(self, generated: str) -> bool:
         """Complet si le texte est exactement une des options."""
@@ -115,7 +115,7 @@ class NumberConstraint(Constraint):
     def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
         """Autorise les tokens gardant un préfixe valide.
 
-        Tester 150k tokens par étape serait lent : les ids des
+        Tester 150k tokens par étape serait lent : les token_ids des
         tokens faits seulement de ``NUMBER_CHARS`` sont listés une fois
         (premier appel), puis seuls ceux-là passent par ``is_valid_prefix``.
         """

@@ -36,18 +36,18 @@ def bytes_to_unicode() -> dict[int, str]:
     return printable | {b: chr(256 + n) for n, b in enumerate(remapped)}
 
 
-def decode_token(raw: str, byte_decoder: dict[str, int]) -> str:
+def decode_token(raw_token: str, char_to_byte: dict[str, int]) -> str:
     """Donne le texte réel d'une entrée brute du vocabulaire.
 
     Exemple : ``"Ġhello"`` -> ``" hello"``.
-    Args: raw: Clé de ``vocab.json``.
-          byte_decoder: Table ``bytes_to_unicode()`` inversée.
+    Args: raw_token: Clé de ``vocab.json``.
+          char_to_byte: Table ``bytes_to_unicode()`` inversée.
     Return: Le texte décodé, ou ``""`` si les octets seuls ne sont pas de
             l'UTF-8 valide (bout de caractère multi-octet) : ces tokens sont
             toujours interdits en décodage contraint.
     """
     try:
-        return bytes(byte_decoder[char] for char in raw).decode("utf-8")
+        return bytes(char_to_byte[char] for char in raw_token).decode("utf-8")
     except (KeyError, UnicodeDecodeError):
         return ""
 
@@ -78,12 +78,12 @@ class Vocabulary(BaseModel):
         except (OSError, json.JSONDecodeError) as err:
             raise ModelLoadError(f"cannot read vocabulary {path}: {err}") \
                 from err
-        byte_decoder = {
+        char_to_byte = {
             char: byte for byte, char in bytes_to_unicode().items()
         }
         texts = [""] * (max(raw_vocab.values()) + 1)
-        for raw, token_id in raw_vocab.items():
-            texts[token_id] = decode_token(raw, byte_decoder)
+        for raw_token, token_id in raw_vocab.items():
+            texts[token_id] = decode_token(raw_token, char_to_byte)
         return cls(texts=texts)
 
     def model_post_init(self, __context: Any) -> None:

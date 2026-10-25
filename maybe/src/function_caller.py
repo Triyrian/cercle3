@@ -63,7 +63,7 @@ def build_prompt(user_prompt: str, functions: list[FunctionDefinition]) -> str:
 NAME_OPENING = '{"name": "'
 PARAMETERS_OPENING = '", "parameters": {'
 
-DEFAULT_VALUES: dict[str, ParameterValue] = {
+FALLBACK_VALUES: dict[str, ParameterValue] = {
     "number": 0.0, "integer": 0, "string": "", "boolean": False,
 }
 """Valeurs neutres de l'appel de secours, par type."""
@@ -98,10 +98,14 @@ class FunctionCaller(BaseModel):
         Arg: input_ids: Prompt encodé.
         Return: La fonction choisie et les ids après son nom.
         """
-        ids = input_ids + self.engine.encode(NAME_OPENING)
-        names = ChoiceConstraint(options=[f.name for f in self.functions])
-        result = self.decoder.generate(ids, names, stop='"')
-        return self.get_function(result.text), result.input_ids
+        token_ids = input_ids + self.engine.encode(NAME_OPENING)
+        name_constraint = ChoiceConstraint(
+            options=[f.name for f in self.functions]
+        )
+        generation = self.decoder.generate(
+            token_ids, name_constraint, stop='"'
+        )
+        return self.get_function(generation.text), generation.input_ids
 
     def extract_arguments(
         self, input_ids: list[int], function: FunctionDefinition
@@ -113,19 +117,19 @@ class FunctionCaller(BaseModel):
         Return: Argument -> valeur Python.
         """
         arguments: dict[str, ParameterValue] = {}
-        ids = input_ids
-        forced = PARAMETERS_OPENING
-        last = len(function.parameters) - 1
+        token_ids = input_ids
+        json_before_value = PARAMETERS_OPENING
+        last_index = len(function.parameters) - 1
         for index, (name, spec) in enumerate(function.parameters.items()):
             quote = '"' if spec.type == "string" else ""
-            forced += f'"{name}": {quote}'
-            ids = ids + self.engine.encode(forced)
-            stop = quote or ("}" if index == last else ",")
+            json_before_value += f'"{name}": {quote}'
+            token_ids = token_ids + self.engine.encode(json_before_value)
+            stop = quote or ("}" if index == last_index else ",")
             constraint = constraint_for(spec.type)
-            result = self.decoder.generate(ids, constraint, stop)
-            arguments[name] = constraint.to_python(result.text)
-            ids = result.input_ids
-            forced = f"{quote}, "
+            generation = self.decoder.generate(token_ids, constraint, stop)
+            arguments[name] = constraint.to_python(generation.text)
+            token_ids = generation.input_ids
+            json_before_value = f"{quote}, "
         return arguments
 
     def fallback_call(self, prompt: str) -> FunctionCall:
@@ -140,7 +144,7 @@ class FunctionCaller(BaseModel):
         """
         function = self.functions[0]
         return FunctionCall(prompt=prompt, name=function.name, parameters={
-            name: DEFAULT_VALUES[spec.type]
+            name: FALLBACK_VALUES[spec.type]
             for name, spec in function.parameters.items()
         })
 

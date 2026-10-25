@@ -9,8 +9,8 @@ from pydantic import TypeAdapter, ValidationError
 from src.errors import InputFileError, OutputFileError
 from src.models import FunctionCall, FunctionDefinition, PromptItem
 
-_FUNCTIONS_ADAPTER = TypeAdapter(list[FunctionDefinition])
-_PROMPTS_ADAPTER = TypeAdapter(list[PromptItem])
+_FUNCTIONS_VALIDATOR = TypeAdapter(list[FunctionDefinition])
+_PROMPTS_VALIDATOR = TypeAdapter(list[PromptItem])
 
 
 def read_json(path: Path) -> Any:
@@ -39,7 +39,7 @@ def load_function_definitions(path: Path) -> list[FunctionDefinition]:
     Raise: InputFileError: Fichier invalide ou liste vide.
     """
     try:
-        functions = _FUNCTIONS_ADAPTER.validate_python(read_json(path))
+        functions = _FUNCTIONS_VALIDATOR.validate_python(read_json(path))
     except ValidationError as err:
         raise InputFileError(f"invalid functions in {path}:\n{err}") from err
     if not functions:
@@ -55,7 +55,7 @@ def load_prompts(path: Path) -> list[PromptItem]:
     Raise: InputFileError: Fichier invalide.
     """
     try:
-        return _PROMPTS_ADAPTER.validate_python(read_json(path))
+        return _PROMPTS_VALIDATOR.validate_python(read_json(path))
     except ValidationError as err:
         raise InputFileError(f"invalid prompts in {path}:\n{err}") from err
 

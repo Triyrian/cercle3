@@ -14,13 +14,13 @@ from pydantic import BaseModel, PrivateAttr
 from llm_sdk import Small_LLM_Model
 from src.errors import ModelLoadError
 
-LLM_NAME = "Qwen/Qwen3-0.6B"
+MODEL_NAME = "Qwen/Qwen3-0.6B"
 
 
 class LLMEngine(BaseModel):
     """Charge le modèle une fois et expose les appels du décodeur."""
 
-    _llm: Any = PrivateAttr(default=None)
+    _model: Any = PrivateAttr(default=None)
 
     def model_post_init(self, __context: Any) -> None:
         """Charge le modèle après la validation pydantic.
@@ -28,10 +28,10 @@ class LLMEngine(BaseModel):
         Raise: ModelLoadError: Échec du téléchargement ou du chargement.
         """
         try:
-            self._llm = Small_LLM_Model(LLM_NAME)
+            self._model = Small_LLM_Model(MODEL_NAME)
         except Exception as err:
             raise ModelLoadError(
-                f"cannot load model {LLM_NAME!r}: {err}"
+                f"cannot load model {MODEL_NAME!r}: {err}"
             ) from err
 
     def encode(self, text: str) -> list[int]:
@@ -40,7 +40,7 @@ class LLMEngine(BaseModel):
         Arg: text: Texte à encoder.
         Return: Ids de tokens.
         """
-        tensor = self._llm.encode(text)
+        tensor = self._model.encode(text)
         return [int(token_id) for token_id in tensor[0].tolist()]
 
     def next_token_logits(
@@ -51,9 +51,9 @@ class LLMEngine(BaseModel):
         Arg: input_ids: Toute la séquence actuelle (prompt + généré).
         Return: Un logit par id de token du modèle.
         """
-        logits = self._llm.get_logits_from_input_ids(input_ids)
+        logits = self._model.get_logits_from_input_ids(input_ids)
         return np.asarray(logits, dtype=np.float32)
 
     def vocab_path(self) -> str:
         """Renvoie le chemin du ``vocab.json`` du modèle."""
-        return str(self._llm.get_path_to_vocab_file())
+        return str(self._model.get_path_to_vocab_file())
