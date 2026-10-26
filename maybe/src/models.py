@@ -1,9 +1,4 @@
-"""Types partagés par tout le projet : les données et les erreurs.
-
-Les données sont des modèles pydantic, validés au chargement. Les erreurs
-héritent de ``Exception`` (rien à valider) : ``__main__`` attrape
-``CallMeMaybeError`` et affiche son message, jamais de traceback.
-"""
+"""Types partagés par tout le projet : les données et les erreurs."""
 
 from pathlib import Path
 from typing import Literal

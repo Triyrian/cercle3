@@ -136,10 +136,6 @@ class FunctionCaller(BaseModel):
     def fallback_call(self, prompt: str) -> FunctionCall:
         """Appel de secours quand le décodage échoue.
 
-        La moulinette compare les réponses ligne à ligne avec sa
-        correction : sauter un prompt décalerait toutes les suivantes.
-        On écrit donc une entrée valide (1re fonction, valeurs neutres),
-        comptée fausse mais qui garde l'ordre.
         Arg: prompt: La requête qui a échoué.
         Return: Un appel conforme au schéma.
         """

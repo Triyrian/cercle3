@@ -1,9 +1,4 @@
-"""Fine surcouche de ``llm_sdk.Small_LLM_Model``.
-
-Le reste du code ne parle qu'à ``LLMEngine`` : il convertit les types
-du SDK (tenseurs torch, listes Python) en ``list[int]`` / tableaux numpy.
-Seules les méthodes publiques du SDK sont utilisées (règle du sujet).
-"""
+"""Fine surcouche de ``llm_sdk.Small_LLM_Model``, seul a parler au LLMEngine"""
 
 from typing import Any
 
