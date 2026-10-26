@@ -1,9 +1,8 @@
 """Table id <-> texte des tokens, issue du ``vocab.json`` du modèle.
 
-``vocab.json`` associe les tokens *bruts* à des ids. Qwen utilise du BPE
-au niveau des octets : chaque octet devient un caractère imprimable (espace =
-``Ġ``, saut de ligne = ``Ċ``...). Pour savoir quels tokens autoriser en
-décodage contraint, il faut leur *vrai* texte, décodé ici une fois.
+``vocab.json`` associe les tokens *bruts* à des ids. Chaque octet devient 
+un caractère imprimable (espace = ``Ġ``.). Pour savoir quels tokens autoriser 
+en décodage contraint, il faut leur *vrai* texte, décodé ici une fois.
 """
 
 import json
@@ -20,11 +19,10 @@ BoolMask = npt.NDArray[np.bool_]
 
 
 def bytes_to_unicode() -> dict[int, str]:
-    """Renvoie la table octet -> caractère du BPE au niveau des octets.
+    """Renvoie la table octet -> caractère au niveau des octets.
 
     Un octet imprimable garde son caractère. Les autres (caractères de
-    contrôle, espace...) sont décalés, dans l'ordre, vers
-    ``chr(256)``, ``chr(257)``... donc l'espace (32) devient ``"Ġ"``.
+    contrôle, espace...) sont décalés, dans l'ordre, vers ``chr(256)``...
     Return: Un dict de 256 entrées, ex. ``{32: "Ġ", 65: "A", ...}``.
     """
     printable: dict[int, str] = (
@@ -43,8 +41,7 @@ def decode_token(raw_token: str, char_to_byte: dict[str, int]) -> str:
     Args: raw_token: Clé de ``vocab.json``.
           char_to_byte: Table ``bytes_to_unicode()`` inversée.
     Return: Le texte décodé, ou ``""`` si les octets seuls ne sont pas de
-            l'UTF-8 valide (bout de caractère multi-octet) : ces tokens sont
-            toujours interdits en décodage contraint.
+            l'UTF-8 valide = tokens interdits en décodage contraint.
     """
     try:
         return bytes(char_to_byte[char] for char in raw_token).decode("utf-8")
@@ -65,9 +62,6 @@ class Vocabulary(BaseModel):
     def from_file(cls, path: str) -> "Vocabulary":
         """Charge ``vocab.json`` et décode ses tokens.
 
-        Les tokens spéciaux (``<|im_start|>``...) ne sont pas dans
-        ``vocab.json`` : le vocabulaire est donc un peu plus petit que les
-        logits, et le décodeur n'en lit que les ``size`` premiers.
         Arg: path: Chemin donné par ``LLMEngine.vocab_path()``.
         Return: Le vocabulaire décodé.
         Raise: ModelLoadError: Fichier illisible.

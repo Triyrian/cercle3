@@ -18,10 +18,7 @@ from src.models import DecodingError, JsonType, ParameterValue
 from src.vocabulary import BoolMask, Vocabulary
 
 NUMBER_RE = re.compile(r"-?(0|[1-9][0-9]*)(\.[0-9]+)?")
-"""Nombre complet : moins optionnel, partie entière, décimales optionnelles.
-
-Pas d'exposant : "1e999" deviendrait Infinity, qui n'est pas du JSON valide.
-"""
+"""Nombre complet : '-' optionnel, partie entière, décimales optionnelles."""
 
 INTEGER_RE = re.compile(r"-?(0|[1-9][0-9]*)")
 """Entier complet : '-' optionnel, sans zéro initial."""
@@ -37,10 +34,9 @@ class Constraint(BaseModel):
     def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
         """Renvoie les tokens gardant ``generated + token`` valide.
 
-        Args: generated: Texte déjà généré pour cette valeur.
+        Args: generated: Texte déjà généré pour cette valeur
               vocab: Vocabulaire décodé.
-        Return: Un masque de taille ``vocab.size``. Un token au texte vide ne
-                doit jamais être autorisé (il n'ajouterait rien).
+        Return: Un masque de taille ``vocab.size``.
         """
 
     @abstractmethod
@@ -106,8 +102,7 @@ class NumberConstraint(Constraint):
 
         Un préfixe valide est un nombre complet (``"4"``, ``"0.5"``) ou
         un nombre privé d'un chiffre (``""``, ``"-"``, ``"4."``) :
-        ajouter ``"0"`` le complète. ``"--"``, ``"."``, ``"01"`` ou
-        ``"4.."`` ne seront jamais complets.
+        ajouter ``"0"`` le complète.
         """
         return self.is_complete(text) or self.is_complete(text + "0")
 
@@ -151,13 +146,7 @@ class StringConstraint(Constraint):
     _risky_ids: list[int] = PrivateAttr(default_factory=list)
 
     def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
-        """Autorise les tokens qui laissent le corps de chaîne complet.
-
-        Un token sans ``"``, ``\\`` ni caractère de contrôle est toujours
-        sûr. Les autres (~5k) ne passent que si ``generated + texte``
-        reste complet : un échappement arrive donc entier (``\\"``,
-        ``\\\\``) et le texte est complet à chaque étape.
-        """
+        """Autorise les tokens qui laissent le corps de chaîne complet."""
         if self._safe_ids is None:
             self._safe_ids = []
             for token_id, text in enumerate(vocab.texts):
@@ -173,11 +162,7 @@ class StringConstraint(Constraint):
         ])
 
     def is_complete(self, generated: str) -> bool:
-        """Complet si ``to_python`` le lit comme corps de chaîne JSON.
-
-        Ex. ``abc`` et ``a\\\\`` (antislash échappé) sont complets,
-        ``abc\\`` ou ``\\u12`` (échappement inachevé) non.
-        """
+        """Complet si ``to_python`` le lit comme corps de chaîne JSON."""
         try:
             value = str(self.to_python(generated))
         except DecodingError:

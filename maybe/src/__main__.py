@@ -43,8 +43,6 @@ def parse_arguments() -> RunConfig:
 def run(config: RunConfig) -> None:
     """Charge tout, traite chaque prompt et écrit la sortie.
 
-    Un prompt qui échoue reçoit l'appel de secours : la moulinette compare
-    les réponses ligne à ligne, il ne faut jamais en sauter une.
     Arg: config: Configuration CLI validée.
     """
     functions = load_function_definitions(config.functions_definition)

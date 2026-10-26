@@ -33,7 +33,7 @@ class ConstrainedDecoder(BaseModel):
         """Génère le texte d'une valeur, token par token.
 
         Au plus ``max_tokens`` étapes : masque de la contrainte (+ tokens
-        d'arrêt si le texte est complet), logits du modèle, meilleur token
+        d'arrêt si le texte est complet), meilleur token
         autorisé. Un token d'arrêt finit la valeur sans être gardé :
         l'appelant écrit lui-même la suite du JSON.
         Args: input_ids: Prompt + JSON déjà généré (non modifié).

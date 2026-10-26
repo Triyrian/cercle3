@@ -46,8 +46,7 @@ def describe_function(function: FunctionDefinition) -> str:
 def build_prompt(user_prompt: str, functions: list[FunctionDefinition]) -> str:
     """Construit le prompt de chat complet, jusqu'au début du JSON.
 
-    Args: user_prompt: Requête en texte libre.
-          functions: Fonctions proposées.
+    Args: user_prompt: Requête en texte libre + functions proposées.
     Return: Le texte à encoder.
     """
     catalog = "\n".join(describe_function(function) for function in functions)
@@ -82,7 +81,6 @@ class FunctionCaller(BaseModel):
 
         Arg: prompt: La requête.
         Return: L'appel de fonction validé.
-        Raise: DecodingError: Impossible de compléter la sortie.
         """
         input_ids = self.engine.encode(build_prompt(prompt, self.functions))
         function, input_ids = self.choose_function(input_ids)
