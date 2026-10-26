@@ -4,33 +4,34 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ValidationError
 
 from src.models import (
     FunctionCall, FunctionDefinition, InputFileError, OutputFileError,
     PromptItem,
 )
 
-_FUNCTIONS_VALIDATOR = TypeAdapter(list[FunctionDefinition])
-_PROMPTS_VALIDATOR = TypeAdapter(list[PromptItem])
 
-
-def read_json(path: Path) -> Any:
-    """Lit un fichier JSON.
+def read_json_list(path: Path) -> list[Any]:
+    """Lit un fichier JSON qui doit contenir une liste.
 
     Arg: path: Fichier à lire.
-    Return: Le contenu JSON décodé.
-    Raise: InputFileError: Fichier absent, illisible ou JSON invalide.
+    Return: La liste décodée.
+    Raise: InputFileError: Fichier absent, illisible, JSON invalide ou pas
+           une liste.
     """
     try:
         with path.open("r", encoding="utf-8") as file:
-            return json.load(file)
+            data = json.load(file)
     except FileNotFoundError as err:
         raise InputFileError(f"file not found: {path}") from err
     except json.JSONDecodeError as err:
         raise InputFileError(f"invalid JSON in {path}: {err}") from err
     except (OSError, UnicodeDecodeError) as err:
         raise InputFileError(f"cannot read {path}: {err}") from err
+    if not isinstance(data, list):
+        raise InputFileError(f"expected a JSON list in {path}")
+    return data
 
 
 def load_function_definitions(path: Path) -> list[FunctionDefinition]:
@@ -41,7 +42,8 @@ def load_function_definitions(path: Path) -> list[FunctionDefinition]:
     Raise: InputFileError: Fichier invalide ou liste vide.
     """
     try:
-        functions = _FUNCTIONS_VALIDATOR.validate_python(read_json(path))
+        functions = [FunctionDefinition.model_validate(item)
+                     for item in read_json_list(path)]
     except ValidationError as err:
         raise InputFileError(f"invalid functions in {path}:\n{err}") from err
     if not functions:
@@ -57,7 +59,8 @@ def load_prompts(path: Path) -> list[PromptItem]:
     Raise: InputFileError: Fichier invalide.
     """
     try:
-        return _PROMPTS_VALIDATOR.validate_python(read_json(path))
+        return [PromptItem.model_validate(item)
+                for item in read_json_list(path)]
     except ValidationError as err:
         raise InputFileError(f"invalid prompts in {path}:\n{err}") from err
 

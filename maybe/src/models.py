@@ -8,7 +8,7 @@ héritent de ``Exception`` (rien à valider) : ``__main__`` attrape
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 JsonType = Literal["number", "integer", "string", "boolean"]
@@ -29,7 +29,7 @@ class FunctionDefinition(BaseModel):
 
     name: str
     description: str = ""
-    parameters: dict[str, ParameterSpec] = Field(default_factory=dict)
+    parameters: dict[str, ParameterSpec] = {}
 
 
 class PromptItem(BaseModel):

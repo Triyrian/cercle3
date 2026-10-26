@@ -12,7 +12,7 @@ import json
 import re
 from abc import abstractmethod
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, PrivateAttr
 
 from src.models import DecodingError, JsonType, ParameterValue
 from src.vocabulary import BoolMask, Vocabulary
@@ -88,7 +88,7 @@ class ChoiceConstraint(Constraint):
 class BooleanConstraint(ChoiceConstraint):
     """Booléen JSON, ``true`` ou ``false``."""
 
-    options: list[str] = Field(default_factory=lambda: ["true", "false"])
+    options: list[str] = ["true", "false"]
 
     def to_python(self, generated: str) -> ParameterValue:
         """Renvoie un booléen."""
