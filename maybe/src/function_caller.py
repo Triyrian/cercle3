@@ -12,9 +12,10 @@ from pydantic import BaseModel
 
 from src.constraints import ChoiceConstraint, constraint_for
 from src.decoder import ConstrainedDecoder
-from src.errors import DecodingError
 from src.llm_engine import LLMEngine
-from src.models import FunctionCall, FunctionDefinition, ParameterValue
+from src.models import (
+    DecodingError, FunctionCall, FunctionDefinition, ParameterValue,
+)
 
 # 1. Le prompt donné au LLM
 

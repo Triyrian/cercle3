@@ -13,7 +13,7 @@ import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, PrivateAttr
 
-from src.errors import ModelLoadError
+from src.models import ModelLoadError
 
 BoolMask = npt.NDArray[np.bool_]
 """Un booléen par id de token : True = token autorisé."""

@@ -1,9 +1,15 @@
-"""Modèles pydantic partagés par tout le projet."""
+"""Types partagés par tout le projet : les données et les erreurs.
+
+Les données sont des modèles pydantic, validés au chargement. Les erreurs
+héritent de ``Exception`` (rien à valider) : ``__main__`` attrape
+``CallMeMaybeError`` et affiche son message, jamais de traceback.
+"""
 
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
+
 
 JsonType = Literal["number", "integer", "string", "boolean"]
 """Types de paramètre gérés par ``functions_definition.json``."""
@@ -46,3 +52,23 @@ class RunConfig(BaseModel):
     functions_definition: Path
     input: Path
     output: Path
+
+
+class CallMeMaybeError(Exception):
+    """Classe de base des erreurs attendues du programme."""
+
+
+class InputFileError(CallMeMaybeError):
+    """Fichier d'entrée absent, illisible ou non conforme au schéma."""
+
+
+class OutputFileError(CallMeMaybeError):
+    """Fichier de sortie impossible à écrire."""
+
+
+class ModelLoadError(CallMeMaybeError):
+    """LLM ou vocabulaire impossible à charger."""
+
+
+class DecodingError(CallMeMaybeError):
+    """Aucune valeur valide issue du décodage contraint."""

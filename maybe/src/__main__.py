@@ -5,11 +5,10 @@ import sys
 from pathlib import Path
 
 from src.decoder import ConstrainedDecoder
-from src.errors import CallMeMaybeError
 from src.file_io import load_function_definitions, load_prompts, save_results
 from src.function_caller import FunctionCaller
 from src.llm_engine import LLMEngine
-from src.models import FunctionCall, RunConfig
+from src.models import CallMeMaybeError, FunctionCall, RunConfig
 from src.vocabulary import Vocabulary
 
 

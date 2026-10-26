@@ -6,8 +6,10 @@ from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
-from src.errors import InputFileError, OutputFileError
-from src.models import FunctionCall, FunctionDefinition, PromptItem
+from src.models import (
+    FunctionCall, FunctionDefinition, InputFileError, OutputFileError,
+    PromptItem,
+)
 
 _FUNCTIONS_VALIDATOR = TypeAdapter(list[FunctionDefinition])
 _PROMPTS_VALIDATOR = TypeAdapter(list[PromptItem])

@@ -5,8 +5,8 @@ import numpy.typing as npt
 from pydantic import BaseModel
 
 from src.constraints import Constraint
-from src.errors import DecodingError
 from src.llm_engine import LLMEngine
+from src.models import DecodingError
 from src.vocabulary import BoolMask, Vocabulary
 
 

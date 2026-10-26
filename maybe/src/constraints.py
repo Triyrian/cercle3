@@ -14,8 +14,7 @@ from abc import abstractmethod
 
 from pydantic import BaseModel, Field, PrivateAttr
 
-from src.errors import DecodingError
-from src.models import JsonType, ParameterValue
+from src.models import DecodingError, JsonType, ParameterValue
 from src.vocabulary import BoolMask, Vocabulary
 
 NUMBER_RE = re.compile(r"-?(0|[1-9][0-9]*)(\.[0-9]+)?")

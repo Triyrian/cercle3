@@ -12,7 +12,7 @@ import numpy.typing as npt
 from pydantic import BaseModel, PrivateAttr
 
 from llm_sdk import Small_LLM_Model
-from src.errors import ModelLoadError
+from src.models import ModelLoadError
 
 MODEL_NAME = "Qwen/Qwen3-0.6B"
 
