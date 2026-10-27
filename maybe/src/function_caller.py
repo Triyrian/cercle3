@@ -13,9 +13,7 @@ from pydantic import BaseModel
 from src.constraints import ChoiceConstraint, constraint_for
 from src.decoder import ConstrainedDecoder
 from src.llm_engine import LLMEngine
-from src.models import (
-    DecodingError, FunctionCall, FunctionDefinition, ParameterValue,
-)
+from src.models import FunctionCall, FunctionDefinition, ParameterValue
 
 # 1. Le prompt donné au LLM
 
@@ -46,7 +44,8 @@ def describe_function(function: FunctionDefinition) -> str:
 def build_prompt(user_prompt: str, functions: list[FunctionDefinition]) -> str:
     """Construit le prompt de chat complet, jusqu'au début du JSON.
 
-    Args: user_prompt: Requête en texte libre + functions proposées.
+    Args: user_prompt: Requête en texte libre.
+          functions: Fonctions proposées.
     Return: Le texte à encoder.
     """
     catalog = "\n".join(describe_function(function) for function in functions)
@@ -104,7 +103,8 @@ class FunctionCaller(BaseModel):
         generation = self.decoder.generate(
             token_ids, name_constraint, stop='"'
         )
-        return self.get_function(generation.text), generation.input_ids
+        function = next(f for f in self.functions if f.name == generation.text)
+        return function, generation.input_ids
 
     def extract_arguments(
         self, input_ids: list[int], function: FunctionDefinition
@@ -142,13 +142,3 @@ class FunctionCaller(BaseModel):
             name: FALLBACK_VALUES[spec.type]
             for name, spec in function.parameters.items()
         })
-
-    def get_function(self, name: str) -> FunctionDefinition:
-        """Trouve une fonction.
-
-        Raise: DecodingError: Aucune fonction de ce nom.
-        """
-        for function in self.functions:
-            if function.name == name:
-                return function
-        raise DecodingError(f"unknown function {name!r}")

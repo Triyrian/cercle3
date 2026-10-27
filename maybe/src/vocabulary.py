@@ -1,16 +1,15 @@
 """Table id <-> texte des tokens, issue du ``vocab.json`` du modèle.
 
-``vocab.json`` associe les tokens *bruts* à des ids. Chaque octet devient 
-un caractère imprimable (espace = ``Ġ``.). Pour savoir quels tokens autoriser 
+``vocab.json`` associe les tokens *bruts* à des ids. Chaque octet devient
+un caractère imprimable (espace = ``Ġ``). Pour savoir quels tokens autoriser
 en décodage contraint, il faut leur *vrai* texte, décodé ici une fois.
 """
 
 import json
-from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel
 
 from src.models import ModelLoadError
 
@@ -50,13 +49,10 @@ def decode_token(raw_token: str, char_to_byte: dict[str, int]) -> str:
 
 
 class Vocabulary(BaseModel):
-    """Texte décodé des tokens et masques utiles en cache."""
+    """Texte décodé des tokens et fabrication des masques."""
 
     texts: list[str]
     """``texts[token_id]`` = texte décodé, ``""`` si token inutilisable."""
-
-    _ids_by_text: dict[str, list[int]] = PrivateAttr(default_factory=dict)
-    _prefix_masks: dict[str, BoolMask] = PrivateAttr(default_factory=dict)
 
     @classmethod
     def from_file(cls, path: str) -> "Vocabulary":
@@ -64,7 +60,6 @@ class Vocabulary(BaseModel):
 
         Arg: path: Chemin donné par ``LLMEngine.vocab_path()``.
         Return: Le vocabulaire décodé.
-        Raise: ModelLoadError: Fichier illisible.
         """
         try:
             with open(path, encoding="utf-8") as file:
@@ -80,20 +75,10 @@ class Vocabulary(BaseModel):
             texts[token_id] = decode_token(raw_token, char_to_byte)
         return cls(texts=texts)
 
-    def model_post_init(self, __context: Any) -> None:
-        """Indexe les ids par texte."""
-        for token_id, text in enumerate(self.texts):
-            if text:
-                self._ids_by_text.setdefault(text, []).append(token_id)
-
     @property
     def size(self) -> int:
         """Nombre d'ids de token du vocabulaire."""
         return len(self.texts)
-
-    def ids_with_text(self, text: str) -> list[int]:
-        """Renvoie les ids des tokens dont le texte vaut ``text``."""
-        return self._ids_by_text.get(text, [])
 
     def mask_from_ids(self, token_ids: list[int]) -> BoolMask:
         """Crée un masque n'autorisant que ``token_ids``."""
@@ -102,14 +87,10 @@ class Vocabulary(BaseModel):
         return mask
 
     def mask_starting_with(self, prefix: str) -> BoolMask:
-        """Masque (en cache) des tokens commençant par ``prefix``.
+        """Masque des tokens commençant par ``prefix``.
 
         Sert aux tokens d'arrêt : une valeur complète finit sur tout token
         débutant par le caractère fermant (``"``, ``,`` ou ``}``).
         """
-        if prefix not in self._prefix_masks:
-            self._prefix_masks[prefix] = np.array(
-                [text.startswith(prefix) for text in self.texts],
-                dtype=np.bool_,
-            )
-        return self._prefix_masks[prefix]
+        return np.array([text.startswith(prefix) for text in self.texts],
+                        dtype=np.bool_)

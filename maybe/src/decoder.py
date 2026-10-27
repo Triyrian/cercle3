@@ -40,7 +40,6 @@ class ConstrainedDecoder(BaseModel):
               constraint: Règles de la valeur.
               stop: Caractère de fin de valeur (``"``, ``,`` ou ``}``).
         Return: Le texte généré et les ids étendus.
-        Raise: DecodingError: Aucune valeur valide possible.
         """
         token_ids = list(input_ids)
         text = ""

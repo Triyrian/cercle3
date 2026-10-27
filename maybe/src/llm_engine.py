@@ -1,4 +1,4 @@
-"""Fine surcouche de ``llm_sdk.Small_LLM_Model``, seul a parler au LLMEngine"""
+"""Surcouche du SDK (``Small_LLM_Model``) : seul fichier qui lui parle."""
 
 from typing import Any
 
@@ -18,10 +18,7 @@ class LLMEngine(BaseModel):
     _model: Any = PrivateAttr(default=None)
 
     def model_post_init(self, __context: Any) -> None:
-        """Charge le modèle après la validation pydantic.
-
-        Raise: ModelLoadError: Échec du téléchargement ou du chargement.
-        """
+        """Charge le modèle après la validation pydantic."""
         try:
             self._model = Small_LLM_Model(MODEL_NAME)
         except Exception as err:

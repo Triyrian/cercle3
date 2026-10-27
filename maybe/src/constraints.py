@@ -3,16 +3,18 @@
 Une contrainte vérifie le texte généré pour UNE valeur (la structure
 JSON autour, comme ``{"name": "`` ou ``, "b": ``, est imposée par
 ``FunctionCaller``). Elle répond à trois questions :
-* ``allowed_mask`` : quels tokens ajouter en gardant le texte valide ?
+* ``is_valid_prefix`` : le texte peut-il encore devenir une valeur valide ?
 * ``is_complete`` : le texte est-il déjà une valeur valide (arrêt permis) ?
 * ``to_python`` : quelle valeur Python finale ?
+``allowed_mask`` (commun à toutes) garde les tokens après lesquels le
+texte reste un préfixe valide.
 """
 
 import json
 import re
 from abc import abstractmethod
 
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel
 
 from src.models import DecodingError, JsonType, ParameterValue
 from src.vocabulary import BoolMask, Vocabulary
@@ -23,21 +25,25 @@ NUMBER_RE = re.compile(r"-?(0|[1-9][0-9]*)(\.[0-9]+)?")
 INTEGER_RE = re.compile(r"-?(0|[1-9][0-9]*)")
 """Entier complet : '-' optionnel, sans zéro initial."""
 
-NUMBER_CHARS = set("0123456789.-")
-"""Seuls caractères permis dans un token nombre."""
-
 
 class Constraint(BaseModel):
     """Base des contraintes (un modèle pydantic est aussi une ABC)."""
 
-    @abstractmethod
     def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
-        """Renvoie les tokens gardant ``generated + token`` valide.
+        """Garde les tokens après lesquels le texte peut encore être valide.
 
-        Args: generated: Texte déjà généré pour cette valeur
+        Args: generated: Texte déjà généré pour cette valeur.
               vocab: Vocabulaire décodé.
         Return: Un masque de taille ``vocab.size``.
         """
+        return vocab.mask_from_ids([
+            token_id for token_id, text in enumerate(vocab.texts)
+            if text and self.is_valid_prefix(generated + text)
+        ])
+
+    @abstractmethod
+    def is_valid_prefix(self, text: str) -> bool:
+        """Dit si ``text`` peut encore devenir une valeur valide."""
 
     @abstractmethod
     def is_complete(self, generated: str) -> bool:
@@ -45,10 +51,7 @@ class Constraint(BaseModel):
 
     @abstractmethod
     def to_python(self, generated: str) -> ParameterValue:
-        """Convertit le texte final en valeur Python.
-
-        Raise: DecodingError: Le texte n'est pas valide.
-        """
+        """Convertit le texte final en valeur Python."""
 
 
 class ChoiceConstraint(Constraint):
@@ -56,19 +59,9 @@ class ChoiceConstraint(Constraint):
 
     options: list[str]
 
-    def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
-        """N'autorise que les tokens suivant une option.
-
-        Pour chaque option commençant par ``generated``, tout préfixe non vide
-        du reste ``remaining`` égal au texte exact d'un token est autorisé.
-        """
-        token_ids: list[int] = []
-        for option in self.options:
-            if option.startswith(generated):
-                remaining = option[len(generated):]
-                for length in range(1, len(remaining) + 1):
-                    token_ids += vocab.ids_with_text(remaining[:length])
-        return vocab.mask_from_ids(token_ids)
+    def is_valid_prefix(self, text: str) -> bool:
+        """Valide si le texte est le début d'une des options."""
+        return any(option.startswith(text) for option in self.options)
 
     def is_complete(self, generated: str) -> bool:
         """Complet si le texte est exactement une des options."""
@@ -95,7 +88,6 @@ class NumberConstraint(Constraint):
     """Nombre JSON (``float``), ou entier si ``integer`` est True."""
 
     integer: bool = False
-    _number_ids: list[int] | None = PrivateAttr(default=None)
 
     def is_valid_prefix(self, text: str) -> bool:
         """Dit si ``text`` peut encore devenir un nombre valide.
@@ -105,23 +97,6 @@ class NumberConstraint(Constraint):
         ajouter ``"0"`` le complète.
         """
         return self.is_complete(text) or self.is_complete(text + "0")
-
-    def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
-        """Autorise les tokens gardant un préfixe valide.
-
-        Tester 150k tokens par étape serait lent : les token_ids des
-        tokens faits seulement de ``NUMBER_CHARS`` sont listés une fois
-        (premier appel), puis seuls ceux-là passent par ``is_valid_prefix``.
-        """
-        if self._number_ids is None:
-            self._number_ids = [
-                token_id for token_id, text in enumerate(vocab.texts)
-                if text and set(text) <= NUMBER_CHARS
-            ]
-        return vocab.mask_from_ids([
-            token_id for token_id in self._number_ids
-            if self.is_valid_prefix(generated + vocab.texts[token_id])
-        ])
 
     def is_complete(self, generated: str) -> bool:
         """Complet si le texte est un nombre JSON."""
@@ -142,24 +117,9 @@ class StringConstraint(Constraint):
     token d'arrêt géré par le décodeur.
     """
 
-    _safe_ids: list[int] | None = PrivateAttr(default=None)
-    _risky_ids: list[int] = PrivateAttr(default_factory=list)
-
-    def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
-        """Autorise les tokens qui laissent le corps de chaîne complet."""
-        if self._safe_ids is None:
-            self._safe_ids = []
-            for token_id, text in enumerate(vocab.texts):
-                if not text:
-                    continue
-                if '"' in text or "\\" in text or min(text) < " ":
-                    self._risky_ids.append(token_id)
-                else:
-                    self._safe_ids.append(token_id)
-        return vocab.mask_from_ids(self._safe_ids + [
-            token_id for token_id in self._risky_ids
-            if self.is_complete(generated + vocab.texts[token_id])
-        ])
+    def is_valid_prefix(self, text: str) -> bool:
+        """Une chaîne peut s'arrêter partout : préfixe valide = complet."""
+        return self.is_complete(text)
 
     def is_complete(self, generated: str) -> bool:
         """Complet si ``to_python`` le lit comme corps de chaîne JSON."""

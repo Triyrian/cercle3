@@ -17,17 +17,11 @@ def read_json_list(path: Path) -> list[Any]:
 
     Arg: path: Fichier à lire.
     Return: La liste décodée.
-    Raise: InputFileError: Fichier absent, illisible, JSON invalide ou pas
-           une liste.
     """
     try:
         with path.open("r", encoding="utf-8") as file:
             data = json.load(file)
-    except FileNotFoundError as err:
-        raise InputFileError(f"file not found: {path}") from err
-    except json.JSONDecodeError as err:
-        raise InputFileError(f"invalid JSON in {path}: {err}") from err
-    except (OSError, UnicodeDecodeError) as err:
+    except (OSError, ValueError) as err:
         raise InputFileError(f"cannot read {path}: {err}") from err
     if not isinstance(data, list):
         raise InputFileError(f"expected a JSON list in {path}")
@@ -39,7 +33,6 @@ def load_function_definitions(path: Path) -> list[FunctionDefinition]:
 
     Arg: path: Fichier à lire.
     Return: Fonctions disponibles (ordre du fichier).
-    Raise: InputFileError: Fichier invalide ou liste vide.
     """
     try:
         functions = [FunctionDefinition.model_validate(item)
@@ -56,7 +49,6 @@ def load_prompts(path: Path) -> list[PromptItem]:
 
     Arg: path: Fichier à lire.
     Return: Prompts à traiter (ordre du fichier).
-    Raise: InputFileError: Fichier invalide.
     """
     try:
         return [PromptItem.model_validate(item)
@@ -70,7 +62,6 @@ def save_results(path: Path, results: list[FunctionCall]) -> None:
 
     Args: path: Fichier à écrire (dossiers parents créés).
           results: Appels de fonction à écrire.
-    Raise: OutputFileError: Fichier impossible à écrire.
     """
     payload = [result.model_dump() for result in results]
     try:
