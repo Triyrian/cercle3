@@ -1,11 +1,8 @@
 """Transforme un prompt en ``FunctionCall``, en deux parties.
 
-1. Le prompt (``build_prompt``) : le texte donné au LLM, au format de chat
-   de Qwen3. Il aide seulement le modèle à *choisir* ; le format de sortie
-   est garanti par le décodage contraint, pas par ces instructions.
-2. L'appel (``FunctionCaller``) : le programme écrit lui-même la structure
-   JSON, le LLM ne remplit que les valeurs, chacune sous la contrainte de
-   son type : ``{"name": "<Choice>", "parameters": {"a": <Number>}}``.
+1. ``build_prompt`` : prompt de chat Qwen3, aide le modèle à *choisir*.
+2. ``FunctionCaller`` : le programme écrit le JSON, le LLM remplit les
+   valeurs : ``{"name": "<Choice>", "parameters": {"a": <Number>}}``.
 """
 
 from pydantic import BaseModel

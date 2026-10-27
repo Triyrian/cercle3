@@ -30,15 +30,12 @@ class ConstrainedDecoder(BaseModel):
     def generate(
         self, input_ids: list[int], constraint: Constraint, stop: str
     ) -> GenerationResult:
-        """Génère le texte d'une valeur, token par token.
+        """Génère une valeur token par token (au plus ``max_tokens``).
 
-        Au plus ``max_tokens`` étapes : masque de la contrainte (+ tokens
-        d'arrêt si le texte est complet), meilleur token
-        autorisé. Un token d'arrêt finit la valeur sans être gardé :
-        l'appelant écrit lui-même la suite du JSON.
-        Args: input_ids: Prompt + JSON déjà généré (non modifié).
+        Le token d'arrêt n'est pas gardé : l'appelant écrit la suite.
+        Args: input_ids: Prompt + JSON déjà écrit (non modifié).
               constraint: Règles de la valeur.
-              stop: Caractère de fin de valeur (``"``, ``,`` ou ``}``).
+              stop: Fin de valeur (``"``, ``,`` ou ``}``).
         Return: Le texte généré et les ids étendus.
         """
         token_ids = list(input_ids)
@@ -65,12 +62,10 @@ class ConstrainedDecoder(BaseModel):
     def best_token(
         logits: npt.NDArray[np.float32], allowed: BoolMask
     ) -> int:
-        """Renvoie le token autorisé au logit maximal.
+        """Renvoie le token autorisé au logit maximal (interdits = -inf).
 
-        Les interdits valent ``-np.inf`` dans une copie (``np.where``) :
-        ``np.argmax`` ne peut pas les choisir. Au moins un doit passer.
-        Args: logits: Logits du token suivant, taille ``vocab.size``.
-              allowed: Masque des tokens autorisés (idem).
+        Args: logits: Logits du token suivant.
+              allowed: Masque des tokens autorisés.
         Return: Id du token choisi.
         """
         return int(np.argmax(np.where(allowed, logits, -np.inf)))

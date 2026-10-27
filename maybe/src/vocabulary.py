@@ -1,8 +1,6 @@
-"""Table id <-> texte des tokens, issue du ``vocab.json`` du modèle.
+"""Table id -> vrai texte des tokens, décodée du ``vocab.json`` du modèle.
 
-``vocab.json`` associe les tokens *bruts* à des ids. Chaque octet devient
-un caractère imprimable (espace = ``Ġ``). Pour savoir quels tokens autoriser
-en décodage contraint, il faut leur *vrai* texte, décodé ici une fois.
+Dans ``vocab.json``, chaque octet devient imprimable (espace = ``Ġ``).
 """
 
 import json
@@ -18,11 +16,9 @@ BoolMask = npt.NDArray[np.bool_]
 
 
 def bytes_to_unicode() -> dict[int, str]:
-    """Renvoie la table octet -> caractère au niveau des octets.
+    """Table octet -> caractère : imprimable inchangé, sinon ``chr(256+n)``.
 
-    Un octet imprimable garde son caractère. Les autres (caractères de
-    contrôle, espace...) sont décalés, dans l'ordre, vers ``chr(256)``...
-    Return: Un dict de 256 entrées, ex. ``{32: "Ġ", 65: "A", ...}``.
+    Return: 256 entrées, ex. ``{32: "Ġ", 65: "A", ...}``.
     """
     printable: dict[int, str] = (
         {i: chr(i) for i in range(33, 127)}
@@ -39,8 +35,7 @@ def decode_token(raw_token: str, char_to_byte: dict[str, int]) -> str:
     Exemple : ``"Ġhello"`` -> ``" hello"``.
     Args: raw_token: Clé de ``vocab.json``.
           char_to_byte: Table ``bytes_to_unicode()`` inversée.
-    Return: Le texte décodé, ou ``""`` si les octets seuls ne sont pas de
-            l'UTF-8 valide = tokens interdits en décodage contraint.
+    Return: Le texte décodé.
     """
     try:
         return bytes(char_to_byte[char] for char in raw_token).decode("utf-8")
@@ -87,10 +82,6 @@ class Vocabulary(BaseModel):
         return mask
 
     def mask_starting_with(self, prefix: str) -> BoolMask:
-        """Masque des tokens commençant par ``prefix``.
-
-        Sert aux tokens d'arrêt : une valeur complète finit sur tout token
-        débutant par le caractère fermant (``"``, ``,`` ou ``}``).
-        """
+        """Masque des tokens commençant par ``prefix`` (tokens d'arrêt)."""
         return np.array([text.startswith(prefix) for text in self.texts],
                         dtype=np.bool_)

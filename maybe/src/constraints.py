@@ -1,13 +1,8 @@
-"""Contraintes de schéma du décodage contraint.
+"""Règles d'UNE valeur générée (le JSON autour vient de FunctionCaller).
 
-Une contrainte vérifie le texte généré pour UNE valeur (la structure
-JSON autour, comme ``{"name": "`` ou ``, "b": ``, est imposée par
-``FunctionCaller``). Elle répond à trois questions :
-* ``is_valid_prefix`` : le texte peut-il encore devenir une valeur valide ?
-* ``is_complete`` : le texte est-il déjà une valeur valide (arrêt permis) ?
-* ``to_python`` : quelle valeur Python finale ?
-``allowed_mask`` (commun à toutes) garde les tokens après lesquels le
-texte reste un préfixe valide.
+* ``is_valid_prefix`` : peut encore devenir valide ?
+* ``is_complete`` : déjà valide, arrêt permis ?
+* ``to_python`` : valeur Python finale.
 """
 
 import json
@@ -30,11 +25,11 @@ class Constraint(BaseModel):
     """Base des contraintes (un modèle pydantic est aussi une ABC)."""
 
     def allowed_mask(self, generated: str, vocab: Vocabulary) -> BoolMask:
-        """Garde les tokens après lesquels le texte peut encore être valide.
+        """Garde les tokens qui laissent un préfixe valide.
 
-        Args: generated: Texte déjà généré pour cette valeur.
+        Args: generated: Texte déjà généré.
               vocab: Vocabulaire décodé.
-        Return: Un masque de taille ``vocab.size``.
+        Return: Masque de taille ``vocab.size``.
         """
         return vocab.mask_from_ids([
             token_id for token_id, text in enumerate(vocab.texts)
@@ -43,11 +38,11 @@ class Constraint(BaseModel):
 
     @abstractmethod
     def is_valid_prefix(self, text: str) -> bool:
-        """Dit si ``text`` peut encore devenir une valeur valide."""
+        """Dit si ``text`` peut encore devenir valide."""
 
     @abstractmethod
     def is_complete(self, generated: str) -> bool:
-        """Dit si ``generated`` est déjà une valeur valide complète."""
+        """Dit si ``generated`` est déjà une valeur complète."""
 
     @abstractmethod
     def to_python(self, generated: str) -> ParameterValue:
@@ -55,16 +50,16 @@ class Constraint(BaseModel):
 
 
 class ChoiceConstraint(Constraint):
-    """La valeur doit être l'une des ``options`` (ex. noms de fonctions)."""
+    """Une des ``options`` (ex. noms de fonctions)."""
 
     options: list[str]
 
     def is_valid_prefix(self, text: str) -> bool:
-        """Valide si le texte est le début d'une des options."""
+        """Valide si début d'une option."""
         return any(option.startswith(text) for option in self.options)
 
     def is_complete(self, generated: str) -> bool:
-        """Complet si le texte est exactement une des options."""
+        """Complet si exactement une option."""
         return generated in self.options
 
     def to_python(self, generated: str) -> ParameterValue:
@@ -85,17 +80,12 @@ class BooleanConstraint(ChoiceConstraint):
 
 
 class NumberConstraint(Constraint):
-    """Nombre JSON (``float``), ou entier si ``integer`` est True."""
+    """Nombre JSON : ``float``, ou ``int`` si ``integer``."""
 
     integer: bool = False
 
     def is_valid_prefix(self, text: str) -> bool:
-        """Dit si ``text`` peut encore devenir un nombre valide.
-
-        Un préfixe valide est un nombre complet (``"4"``, ``"0.5"``) ou
-        un nombre privé d'un chiffre (``""``, ``"-"``, ``"4."``) :
-        ajouter ``"0"`` le complète.
-        """
+        """Complet, ou complet après ajout de ``"0"`` (``"-"``, ``"4."``)."""
         return self.is_complete(text) or self.is_complete(text + "0")
 
     def is_complete(self, generated: str) -> bool:
@@ -111,18 +101,14 @@ class NumberConstraint(Constraint):
 
 
 class StringConstraint(Constraint):
-    """Contenu d'une chaîne JSON, SANS les guillemets autour.
-
-    Le guillemet ouvrant est imposé par l'appelant, le fermant est le
-    token d'arrêt géré par le décodeur.
-    """
+    """Corps d'une chaîne JSON, sans guillemets (``"`` final = arrêt)."""
 
     def is_valid_prefix(self, text: str) -> bool:
-        """Une chaîne peut s'arrêter partout : préfixe valide = complet."""
+        """Préfixe valide = complet."""
         return self.is_complete(text)
 
     def is_complete(self, generated: str) -> bool:
-        """Complet si ``to_python`` le lit comme corps de chaîne JSON."""
+        """Complet si JSON valide, sans caractère de contrôle."""
         try:
             value = str(self.to_python(generated))
         except DecodingError:
@@ -130,7 +116,7 @@ class StringConstraint(Constraint):
         return all(char >= " " for char in value)
 
     def to_python(self, generated: str) -> ParameterValue:
-        """Décode le corps de chaîne JSON en ``str`` Python."""
+        """Décode le corps JSON en ``str``."""
         try:
             return str(json.loads(f'"{generated}"'))
         except json.JSONDecodeError as err:
