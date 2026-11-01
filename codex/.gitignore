@@ -1,0 +1,7 @@
+codexion
+obj/
+test_logs/
+moulinette/
+*.pdf
+.DS_Store
+tests/
