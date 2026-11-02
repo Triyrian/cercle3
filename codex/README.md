@@ -69,16 +69,15 @@ under `valgrind --tool=drd`, or build it with `-fsanitize=thread`.
 ## Resources
 
 - `man pthread_mutex_lock`, `pthread_cond_wait`, `pthread_cond_timedwait`
-- E. G. Coffman et al., *System Deadlocks* (1971)
-- E. W. Dijkstra, the dining philosophers problem
+- E. G. Coffman et al., *System Deadlocks*
+- The dining philosophers problem
 - [Earliest deadline first scheduling](https://en.wikipedia.org/wiki/Earliest_deadline_first_scheduling)
 - [Valgrind manual: Helgrind and DRD](https://valgrind.org/docs/manual/manual.html)
+- Git Online Codexion moulinette (https://github.com/enadeaud/Testeur-Codexion.git)
+- Many friends and peers in 42 school
 
 **Use of AI.** AI was used as pair programmers:
 - design of the synchronization;
 - simplifying the code;
-- reviewing for races;
+- reviewing for races and burnout;
 - testing.
-
-ChatGPT was used to explain concepts. I understand and can modify every part
-of the program.
