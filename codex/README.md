@@ -74,7 +74,7 @@ under `valgrind --tool=drd`, or build it with `-fsanitize=thread`.
 - [Earliest deadline first scheduling](https://en.wikipedia.org/wiki/Earliest_deadline_first_scheduling)
 - [Valgrind manual: Helgrind and DRD](https://valgrind.org/docs/manual/manual.html)
 
-**Use of AI.** AI were used as pair programmers:
+**Use of AI.** AI was used as pair programmers:
 - design of the synchronization;
 - simplifying the code;
 - reviewing for races;
